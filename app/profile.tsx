@@ -1,3 +1,4 @@
+// app/profile.tsx (or wherever this screen lives)
 import { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -7,6 +8,8 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  useColorScheme,
+  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -14,6 +17,24 @@ import { supabase } from "../src/services/supabase";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  // Theme palette (tuned to Tailwind grays)
+  const COLORS = {
+    pageBg: isDark ? "#111827" : "#F3F4F6",        // gray-900 : gray-100
+    cardBg: isDark ? "#1F2937" : "#FFFFFF",        // gray-800 : white
+    textPrimary: isDark ? "#FFFFFF" : "#111827",   // white : gray-900
+    textSecondary: isDark ? "#D1D5DB" : "#4B5563", // gray-300 : gray-600
+    mutedBg: isDark ? "#374151" : "#E5E7EB",       // gray-700 : gray-200
+    inputText: isDark ? "#F9FAFB" : "#111827",     // gray-50 : gray-900
+    placeholder: isDark ? "#9CA3AF" : "#6B7280",   // gray-400 : gray-500
+    border: isDark ? "#374151" : "#E5E7EB",        // gray-700 : gray-200
+    brand: "#2563EB",                              // blue-600
+    success: "#16A34A",                            // green-600
+    spinner: isDark ? "#FFFFFF" : "#111827",
+  };
+
   const [loading, setLoading] = useState(true);
 
   // form fields
@@ -96,7 +117,7 @@ export default function ProfileScreen() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [router]);
 
   async function pickImage() {
     if (!hasAvatarColumn) {
@@ -209,44 +230,66 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <ActivityIndicator />
+      <View
+        key={colorScheme} // remount on theme flip for instant visual update
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.pageBg }}
+      >
+        <ActivityIndicator size="large" color={COLORS.spinner} />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-gray-100 dark:bg-gray-900 px-6 py-8">
+    <View
+      key={colorScheme} // 👈 forces a quick remount when theme flips
+      style={{ flex: 1, backgroundColor: COLORS.pageBg, paddingHorizontal: 24, paddingVertical: 32 }}
+    >
       {/* Avatar */}
-      <View className="items-center mb-10">
+      <View style={{ alignItems: "center", marginBottom: 40 }}>
         <TouchableOpacity
           onPress={pickImage}
-          className="w-52 h-52 rounded-full overflow-hidden"
           activeOpacity={0.8}
+          style={{
+            width: 208, // w-52
+            height: 208,
+            borderRadius: 208 / 2,
+            overflow: "hidden",
+            backgroundColor: COLORS.cardBg,
+          }}
         >
           {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} className="w-full h-full" />
+            <Image source={{ uri: avatarUrl }} style={{ width: "100%", height: "100%" }} />
           ) : (
-            <View className="w-full h-full items-center justify-center bg-gray-200 dark:bg-gray-700">
-              <Text className="text-gray-600 dark:text-gray-300">
+            <View
+              style={{
+                width: "100%",
+                height: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: COLORS.mutedBg,
+              }}
+            >
+              <Text style={{ color: COLORS.textSecondary }}>
                 {hasAvatarColumn ? "Add Photo" : "No Photo"}
               </Text>
             </View>
           )}
         </TouchableOpacity>
         {hasAvatarColumn && (
-          <Text className="mt-2 text-sm text-gray-500">Tap to upload</Text>
+          <Text style={{ marginTop: 8, fontSize: 12, color: COLORS.textSecondary }}>
+            Tap to upload
+          </Text>
         )}
       </View>
 
       {/* Username row */}
-      <View className="mb-8">
-        <View className="flex-row items-center justify-between mb-2">
-          <Text className="text-xs uppercase tracking-wider text-gray-500">
+      <View style={{ marginBottom: 32 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <Text style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: COLORS.textSecondary }}>
             Username
           </Text>
           <TouchableOpacity onPress={toggleEditUsername} hitSlop={8}>
-            <Text className="text-blue-600 font-semibold">
+            <Text style={{ color: COLORS.brand, fontWeight: "600" }}>
               {editingUsername ? "Done" : "Edit"}
             </Text>
           </TouchableOpacity>
@@ -257,20 +300,26 @@ export default function ProfileScreen() {
           onChangeText={setUsername}
           editable={editingUsername}
           placeholder="Enter your username"
-          className="text-base text-gray-900 dark:text-white bg-transparent"
-          style={{ borderWidth: 0 }}
+          placeholderTextColor={COLORS.placeholder}
+          style={{
+            color: COLORS.inputText,
+            backgroundColor: "transparent",
+            borderWidth: 0,
+            paddingVertical: Platform.select({ ios: 10, android: 6 }),
+            fontSize: 16,
+          }}
           underlineColorAndroid="transparent"
         />
       </View>
 
       {/* Email row */}
-      <View className="mb-10">
-        <View className="flex-row items-center justify-between mb-2">
-          <Text className="text-xs uppercase tracking-wider text-gray-500">
+      <View style={{ marginBottom: 40 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <Text style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: COLORS.textSecondary }}>
             Email
           </Text>
           <TouchableOpacity onPress={toggleEditEmail} hitSlop={8}>
-            <Text className="text-blue-600 font-semibold">
+            <Text style={{ color: COLORS.brand, fontWeight: "600" }}>
               {editingEmail ? "Done" : "Edit"}
             </Text>
           </TouchableOpacity>
@@ -281,20 +330,32 @@ export default function ProfileScreen() {
           onChangeText={setEmail}
           editable={editingEmail}
           placeholder="you@example.com"
+          placeholderTextColor={COLORS.placeholder}
           keyboardType="email-address"
           autoCapitalize="none"
-          className="text-base text-gray-900 dark:text-white bg-transparent"
-          style={{ borderWidth: 0 }}
+          style={{
+            color: COLORS.inputText,
+            backgroundColor: "transparent",
+            borderWidth: 0,
+            paddingVertical: Platform.select({ ios: 10, android: 6 }),
+            fontSize: 16,
+          }}
           underlineColorAndroid="transparent"
         />
       </View>
 
       <TouchableOpacity
         onPress={handleSave}
-        className="bg-green-600 py-3 rounded-xl"
         activeOpacity={0.9}
+        style={{
+          backgroundColor: COLORS.success,
+          paddingVertical: 12,
+          borderRadius: 12,
+        }}
       >
-        <Text className="text-center text-white font-semibold text-lg">Save</Text>
+        <Text style={{ textAlign: "center", color: "#FFFFFF", fontWeight: "600", fontSize: 18 }}>
+          Save
+        </Text>
       </TouchableOpacity>
     </View>
   );

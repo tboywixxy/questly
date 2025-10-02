@@ -12,6 +12,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
 import CommentsModal from "../../components/CommentsModal";
 import { supabase } from "../../src/services/supabase";
@@ -32,6 +33,8 @@ type FeedRow = {
 
 export default function FeedTab() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === "dark" ? "#FFFFFF" : "#111827";
 
   const [rows, setRows] = useState<FeedRow[]>([]);
   const [likedByMe, setLikedByMe] = useState<Record<string, boolean>>({});
@@ -249,7 +252,7 @@ export default function FeedTab() {
           style={{ paddingHorizontal: 6, paddingVertical: 2 }}
         >
           <View>
-            <Ionicons name="notifications-outline" size={24} color="#111827" />
+            <Ionicons name="notifications-outline" size={24} color={iconColor} />
             {unread > 0 && (
               <View
                 style={{
@@ -276,7 +279,7 @@ export default function FeedTab() {
           data={rows}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 15, paddingBottom: 75 }}
           renderItem={({ item }) => {
             const meLiked = !!likedByMe[item.id];
             const totalForAuthor = authorTotals[item.user_id] ?? 0;

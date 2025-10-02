@@ -1,16 +1,39 @@
 import { useState } from "react";
-import { View, TextInput, Alert, Text, TouchableOpacity } from "react-native";
+import {
+  View,
+  TextInput,
+  Alert,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  Platform,
+} from "react-native";
 import { supabase } from "../../src/services/supabase";
 import { Link, useRouter } from "expo-router";
 
 export default function Login() {
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  // Theme palette (Tailwind-ish grays)
+  const COLORS = {
+    pageBg: isDark ? "#111827" : "#F3F4F6",        // gray-900 : gray-100
+    cardBg: isDark ? "#1F2937" : "#FFFFFF",        // gray-800 : white
+    border: isDark ? "#374151" : "#D1D5DB",        // gray-700 : gray-300
+    textPrimary: isDark ? "#FFFFFF" : "#111827",   // white : gray-900
+    textSecondary: isDark ? "#D1D5DB" : "#374151", // gray-300 : gray-700
+    inputText: isDark ? "#F9FAFB" : "#111827",     // gray-50 : gray-900
+    placeholder: isDark ? "#9CA3AF" : "#6B7280",   // gray-400 : gray-500
+    brand: "#2563EB",                              // blue-600
+    buttonText: "#FFFFFF",
+  };
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const router = useRouter();
 
   async function handleLogin() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-
     if (error) {
       Alert.alert("Login failed", error.message);
       return;
@@ -19,40 +42,86 @@ export default function Login() {
   }
 
   return (
-    <View className="flex-1 justify-center px-6 bg-gray-100 dark:bg-gray-900">
-      <Text className="text-4xl font-bold text-center mb-10 text-gray-900 dark:text-white">
+    <View
+      key={colorScheme} // 👈 instant re-mount when system theme flips
+      style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24, backgroundColor: COLORS.pageBg }}
+    >
+      <Text
+        style={{
+          fontSize: 32,
+          fontWeight: "800",
+          textAlign: "center",
+          marginBottom: 40,
+          color: COLORS.textPrimary,
+        }}
+      >
         Questly
       </Text>
 
-      <Text className="mb-2 text-gray-700 dark:text-gray-300">Email</Text>
+      <Text style={{ marginBottom: 8, color: COLORS.textSecondary }}>Email</Text>
       <TextInput
         placeholder="you@example.com"
+        placeholderTextColor={COLORS.placeholder}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
+        autoCorrect={false}
         keyboardType="email-address"
-        className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 mb-4 text-gray-900 dark:text-white"
+        style={{
+          borderWidth: 1,
+          borderColor: COLORS.border,
+          backgroundColor: COLORS.cardBg,
+          borderRadius: 12,
+          paddingHorizontal: 16,
+          paddingVertical: Platform.select({ ios: 12, android: 10 }),
+          marginBottom: 16,
+          color: COLORS.inputText,
+          fontSize: 16,
+        }}
       />
 
-      <Text className="mb-2 text-gray-700 dark:text-gray-300">Password</Text>
+      <Text style={{ marginBottom: 8, color: COLORS.textSecondary }}>Password</Text>
       <TextInput
         placeholder="Enter password"
+        placeholderTextColor={COLORS.placeholder}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 mb-6 text-gray-900 dark:text-white"
+        autoCapitalize="none"
+        style={{
+          borderWidth: 1,
+          borderColor: COLORS.border,
+          backgroundColor: COLORS.cardBg,
+          borderRadius: 12,
+          paddingHorizontal: 16,
+          paddingVertical: Platform.select({ ios: 12, android: 10 }),
+          marginBottom: 24,
+          color: COLORS.inputText,
+          fontSize: 16,
+        }}
       />
 
       <TouchableOpacity
         onPress={handleLogin}
-        className="bg-blue-600 rounded-xl py-3 mb-6"
+        activeOpacity={0.9}
+        style={{
+          backgroundColor: COLORS.brand,
+          borderRadius: 12,
+          paddingVertical: 12,
+          marginBottom: 24,
+        }}
       >
-        <Text className="text-center text-white font-semibold text-lg">Login</Text>
+        <Text style={{ textAlign: "center", color: COLORS.buttonText, fontWeight: "600", fontSize: 18 }}>
+          Login
+        </Text>
       </TouchableOpacity>
 
-      <Text className="text-center text-gray-700 dark:text-gray-300">
+      <Text style={{ textAlign: "center", color: COLORS.textSecondary }}>
         Don’t have an account?{" "}
-        <Link href="/(auth)/register" className="text-blue-600 font-semibold">
+        <Link
+          href="/(auth)/register"
+          style={{ color: COLORS.brand, fontWeight: "600" }}
+        >
           Register
         </Link>
       </Text>

@@ -9,8 +9,10 @@ import {
   Keyboard,
   Image,
   Platform,
+  useColorScheme,
 } from "react-native";
 import ActionSheet, { useScrollHandlers } from "react-native-actions-sheet";
+import type { ActionSheetRef } from "react-native-actions-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../src/services/supabase";
 
@@ -44,9 +46,25 @@ export default function CommentsModal({
   const [uid, setUid] = useState<string | null>(null);
 
   const insets = useSafeAreaInsets();
-  const sheetRef = useRef<ActionSheet>(null);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const sheetRef = useRef<ActionSheetRef>(null);
   const listRef = useRef<FlatList<CommentRow>>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Theme-aware colors
+  const COLORS = {
+    sheetBg: isDark ? "#1F2937" : "#FFFFFF",          // gray-800 : white
+    indicator: isDark ? "#374151" : "#D1D5DB",        // gray-700 : gray-300
+    listText: isDark ? "#E5E7EB" : "#1F2937",         // gray-200 : gray-800
+    listSubText: isDark ? "#9CA3AF" : "#6B7280",      // gray-400 : gray-500
+    border: isDark ? "#374151" : "#E5E7EB",           // gray-700 : gray-200
+    composerBg: isDark ? "#1F2937" : "#FFFFFF",       // gray-800 : white
+    inputBg: isDark ? "#374151" : "#F3F4F6",          // gray-700 : gray-100
+    inputText: isDark ? "#F9FAFB" : "#111827",        // gray-50 : gray-900
+    placeholder: isDark ? "#9CA3AF" : "#6B7280",      // gray-400 : gray-500
+  };
 
   // Composer height (fixed) + safe bottom
   const COMPOSER_H = 56;
@@ -73,7 +91,9 @@ export default function CommentsModal({
       if (!active) return;
       setUid(user?.id ?? null);
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -143,7 +163,12 @@ export default function CommentsModal({
 
   function Avatar({ name, uri }: { name?: string | null; uri?: string | null }) {
     if (uri) {
-      return <Image source={{ uri }} style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12 }} />;
+      return (
+        <Image
+          source={{ uri }}
+          style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12 }}
+        />
+      );
     }
     const initials =
       (name ?? "U")
@@ -171,10 +196,15 @@ export default function CommentsModal({
       drawUnderStatusBar
       statusBarTranslucent={Platform.OS === "android"}
       defaultOverlayOpacity={0.4}
-      // SHOW the small horizontal drag line:
-      indicatorStyle={{ width: 48, height: 6, borderRadius: 3, backgroundColor: "#D1D5DB" }}
+      // Small horizontal drag line, theme-aware
+      indicatorStyle={{
+        width: 48,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: COLORS.indicator,
+      }}
       containerStyle={{
-        backgroundColor: "#fff",
+        backgroundColor: COLORS.sheetBg,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         // allow absolutely positioned composer inside
@@ -185,7 +215,11 @@ export default function CommentsModal({
     >
       {/* Optional post preview */}
       {postPreview ? (
-        <Text className="px-5 pt-2 pb-2 text-gray-500" numberOfLines={3}>
+        <Text
+          className="px-5 pt-2 pb-2"
+          style={{ color: COLORS.listSubText }}
+          numberOfLines={3}
+        >
           {postPreview}
         </Text>
       ) : null}
@@ -208,9 +242,22 @@ export default function CommentsModal({
           <View className="flex-row mb-12">
             <Avatar name={item.username} uri={item.avatar_url ?? undefined} />
             <View className="flex-1">
-              <Text className="text-[13px] font-semibold text-gray-900">{item.username ?? "User"}</Text>
-              <Text className="text-[15px] text-gray-800 mt-1">{item.content}</Text>
-              <Text className="text-[11px] text-gray-500 mt-1">
+              <Text
+                className="text-[13px] font-semibold"
+                style={{ color: COLORS.listText }}
+              >
+                {item.username ?? "User"}
+              </Text>
+              <Text
+                className="text-[15px] mt-1"
+                style={{ color: COLORS.listText }}
+              >
+                {item.content}
+              </Text>
+              <Text
+                className="text-[11px] mt-1"
+                style={{ color: COLORS.listSubText }}
+              >
                 {new Date(item.created_at).toLocaleString()}
               </Text>
             </View>
@@ -234,8 +281,10 @@ export default function CommentsModal({
           paddingTop: 8,
           paddingHorizontal: 16,
           height: COMPOSER_H + bottomPad + 8, // reserve exact space
+          backgroundColor: COLORS.composerBg,
+          borderTopWidth: 1,
+          borderTopColor: COLORS.border,
         }}
-        className="bg-white border-t border-gray-200"
       >
         <View className="flex-row items-center">
           <TextInput
@@ -243,8 +292,9 @@ export default function CommentsModal({
             onChangeText={setText}
             placeholder="Write a comment…"
             multiline
-            style={{ maxHeight: 120 }}
-            className="flex-1 bg-gray-100 rounded-2xl px-4 py-3 text-gray-900"
+            style={{ maxHeight: 120, color: COLORS.inputText, backgroundColor: COLORS.inputBg }}
+            className="flex-1 rounded-2xl px-4 py-3"
+            placeholderTextColor={COLORS.placeholder}
             returnKeyType="send"
             onSubmitEditing={send}
             blurOnSubmit={false}

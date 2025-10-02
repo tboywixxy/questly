@@ -17,7 +17,7 @@ type IconName = React.ComponentProps<typeof FontAwesome>["name"];
 
 // --- Layout sizing ---
 const BAR_HEIGHT = 64; // visual height of the pill
-const V_MARGIN = Platform.select({ ios: 24, android: 16 }) ?? 16; // distance from bottom
+const V_MARGIN = Platform.select({ ios: 4, android: 6 }) ?? 16; // distance from bottom
 const H_MARGIN = 16;
 
 // 🔹 Provide “how much space the content needs under the pill”
@@ -118,10 +118,6 @@ function FloatingPillTabBar({ state, descriptors, navigation }: any) {
           justifyContent: "space-between",
           paddingHorizontal: 6,
           shadowColor: SHADOW,
-          shadowOpacity: 0.2,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 12,
         }}
       >
         {state.routes.map((route: any, index: number) => {

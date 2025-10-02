@@ -11,19 +11,41 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  useColorScheme,
 } from "react-native";
 import { supabase } from "../../src/services/supabase";
 
 const BUCKET = "post_media";
 
 export default function CreatePostTab() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  // Theme palette (Tailwind-ish grays)
+  const COLORS = {
+    pageBg: isDark ? "#111827" : "#F3F4F6",        // gray-900 : gray-100
+    cardBg: isDark ? "#1F2937" : "#FFFFFF",        // gray-800 : white
+    border: isDark ? "#374151" : "#D1D5DB",        // gray-700 : gray-300
+    textPrimary: isDark ? "#FFFFFF" : "#111827",   // white : gray-900
+    textSecondary: isDark ? "#D1D5DB" : "#4B5563", // gray-300 : gray-600
+    inputBg: isDark ? "#1F2937" : "#FFFFFF",       // match card
+    inputText: isDark ? "#F9FAFB" : "#111827",     // gray-50 : gray-900
+    placeholder: isDark ? "#9CA3AF" : "#6B7280",   // gray-400 : gray-500
+    brandBlue: "#2563EB",
+    danger: "#DC2626",
+    success: "#16A34A",
+  };
+
   const [content, setContent] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") return Alert.alert("Permission needed", "Allow photo access.");
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Allow photo access.");
+      return;
+    }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.85,
@@ -47,6 +69,7 @@ export default function CreatePostTab() {
   }
 
   async function handlePost() {
+    if (saving) return; // prevent double taps
     if (!content.trim() && !imageUri) {
       Alert.alert("Empty", "Write something or add an image.");
       return;
@@ -54,7 +77,10 @@ export default function CreatePostTab() {
     try {
       setSaving(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return Alert.alert("Login required", "Please sign in first.");
+      if (!user) {
+        Alert.alert("Login required", "Please sign in first.");
+        return;
+      }
 
       const mediaUrl = await uploadIfAny(user.id);
       const { error } = await supabase.from("posts").insert({
@@ -78,41 +104,75 @@ export default function CreatePostTab() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
+        key={colorScheme} // 👈 instant re-mount on theme change
         behavior={Platform.select({ ios: "padding", android: undefined })}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
-        <View className="flex-1 bg-gray-100 dark:bg-gray-900 px-6 py-8">
-          <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Create</Text>
+        <View style={{ flex: 1, backgroundColor: COLORS.pageBg, paddingHorizontal: 24, paddingVertical: 32 }}>
+          <Text style={{ fontSize: 24, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 24 }}>
+            Create
+          </Text>
 
           <TextInput
             value={content}
             onChangeText={setContent}
             placeholder="What's new?"
+            placeholderTextColor={COLORS.placeholder}
             multiline
-            className="min-h-[120px] border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl px-4 py-3 text-gray-900 dark:text-white mb-4"
+            style={{
+              minHeight: 120,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              backgroundColor: COLORS.inputBg,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              color: COLORS.inputText,
+              marginBottom: 16,
+              textAlignVertical: "top",
+            }}
             returnKeyType="done"
           />
 
           {imageUri ? (
-            <View className="mb-4">
-              <Image source={{ uri: imageUri }} className="w-full h-56 rounded-2xl" resizeMode="cover" />
-              <TouchableOpacity onPress={() => setImageUri(null)} className="mt-2">
-                <Text className="text-red-600 font-semibold">Remove image</Text>
+            <View style={{ marginBottom: 16 }}>
+              <Image
+                source={{ uri: imageUri }}
+                style={{ width: "100%", height: 224, borderRadius: 16 }}
+                resizeMode="cover"
+              />
+              <TouchableOpacity onPress={() => setImageUri(null)} style={{ marginTop: 8 }}>
+                <Text style={{ color: COLORS.danger, fontWeight: "600" }}>Remove image</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity onPress={pickImage} className="bg-white dark:bg-gray-800 rounded-2xl p-4 mb-4">
-              <Text className="text-blue-600 font-semibold">Add image</Text>
+            <TouchableOpacity
+              onPress={pickImage}
+              activeOpacity={0.9}
+              style={{
+                backgroundColor: COLORS.cardBg,
+                borderWidth: 1,
+                borderColor: COLORS.border,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 16,
+              }}
+            >
+              <Text style={{ color: COLORS.brandBlue, fontWeight: "600" }}>Add image</Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
             disabled={saving}
             onPress={handlePost}
-            className="bg-green-600 py-3 rounded-xl"
             activeOpacity={0.9}
+            style={{
+              backgroundColor: saving ? "#16A34A99" : COLORS.success,
+              paddingVertical: 12,
+              borderRadius: 12,
+            }}
           >
-            <Text className="text-center text-white font-semibold text-lg">
+            <Text style={{ textAlign: "center", color: "#FFFFFF", fontWeight: "600", fontSize: 18 }}>
               {saving ? "Posting..." : "Post"}
             </Text>
           </TouchableOpacity>
