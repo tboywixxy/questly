@@ -21,6 +21,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "softwareKeyboardLayoutMode": "pan",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -32,6 +33,10 @@
     "plugins": [
       "expo-router"
     ],
+      "extra": {
+      "eas": { "projectId": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b" },
+      "EXPO_PUBLIC_EAS_PROJECT_ID": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b"
+    },
     "experiments": {
       "typedRoutes": true
     }
