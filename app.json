@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Questly",
-    "slug": "Questly",
+    "slug": "questly",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -14,13 +14,19 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.questly.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.questly.app",
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -31,10 +37,13 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-notifications"
     ],
-      "extra": {
-      "eas": { "projectId": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b" },
+    "extra": {
+      "eas": {
+        "projectId": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b"
+      },
       "EXPO_PUBLIC_EAS_PROJECT_ID": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b"
     },
     "experiments": {

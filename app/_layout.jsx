@@ -9,6 +9,8 @@ import {
   initialWindowMetrics,
 } from "react-native-safe-area-context";
 import "../global.css";
+import { NotificationProvider } from "@/src/contexts/NotificationContext";
+import * as Notifications from 'expo-notifications';
 
 function ThemedStack() {
   const isDark = useColorScheme() === "dark";
@@ -99,10 +101,20 @@ function ThemedStack() {
   );
 }
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true
+  }),
+})
+
 export default function RootLayout() {
   return (
+    <NotificationProvider>
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <ThemedStack />
     </SafeAreaProvider>
+    </NotificationProvider>
   );
 }
