@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// app/index.js
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { supabase } from "../src/services/supabase";
@@ -6,45 +6,36 @@ import { supabase } from "../src/services/supabase";
 export default function Index() {
   const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [onboardingDone, setOnboardingDone] = useState(null); 
 
   useEffect(() => {
     let alive = true;
-    (async () => {
+
+    async function bootstrap() {
       try {
-        const [{ data: { session } = {} }, done] = await Promise.all([
-          supabase.auth.getSession(),
-          AsyncStorage.getItem("@onboarding_done"),
-        ]);
-
+        // initial session check
+        const { data } = await supabase.auth.getSession();
         if (!alive) return;
-
-        const isLogged = !!session;
-        setLoggedIn(isLogged);
-
-        if (isLogged) {
-          await AsyncStorage.setItem("@onboarding_done", "1");
-          setOnboardingDone(true);
-        } else {
-          setOnboardingDone(done === "1");
-        }
-      } catch (e) {
-        setOnboardingDone(true);
+        setLoggedIn(!!data?.session);
       } finally {
         if (alive) setReady(true);
       }
-    })();
+    }
+
+    bootstrap();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(!!session);
+    });
 
     return () => {
       alive = false;
+      sub?.subscription?.unsubscribe?.();
     };
   }, []);
 
-  if (!ready || onboardingDone === null) return null;
+  if (!ready) return null;
 
   if (loggedIn) return <Redirect href="/(tabs)/home" />;
 
-  if (!onboardingDone) return <Redirect href="/(auth)/onboarding" />;
-
-  return <Redirect href="/(auth)/login" />;
+  return <Redirect href="/(auth)/onboarding" />;
 }

@@ -61,7 +61,7 @@ function AnimatedTabIcon({
     const loop = Animated.loop(
       Animated.timing(rotation, {
         toValue: 1,
-        duration: 3000,
+        duration: 21000,
         easing: Easing.linear,
         useNativeDriver: true,
       })

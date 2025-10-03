@@ -318,7 +318,7 @@ const textInputDisabled = false;
     <KeyboardAvoidingView behavior={Platform.select({ ios: "padding" })} style={{ flex: 1 }}>
       <View style={{ flex: 1, backgroundColor: COLORS.pageBg }}>
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: 42 }}
           keyboardShouldPersistTaps="handled"
           bounces
         >

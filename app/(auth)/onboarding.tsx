@@ -81,19 +81,27 @@ export default function Onboarding() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: headerBg }}>
       {/* Top Bar (pinned above slides) */}
-      <View
-        style={{
-          paddingTop: Math.max(insets.top, 8),
-          paddingHorizontal: 16,
-          paddingBottom: 8,
-          backgroundColor: headerBg,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          zIndex: 100,
-          elevation: 6,
-        }}
-      >
+<View
+  style={{
+    paddingTop: Math.max(insets.top, 8),
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    backgroundColor: headerBg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+
+    // 🚫 No shadows anywhere
+    zIndex: 100,
+    elevation: 0, // Android
+    shadowColor: "transparent", // iOS
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    borderBottomWidth: 0, // just in case a thin divider appears
+  }}
+>
+
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Image source={LOGO} style={{ width: 44, height: 44, borderRadius: 10, marginRight: 10 }} resizeMode="contain" />
           <Text style={{ color: headerTextColor, fontSize: 18, fontWeight: "800", letterSpacing: 0.2 }}>Questly</Text>

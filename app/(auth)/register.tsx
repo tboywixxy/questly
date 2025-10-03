@@ -88,7 +88,7 @@ export default function Register() {
             flexGrow: 1,
             paddingHorizontal: 24,
             paddingTop: 24,
-            paddingBottom: 32,
+            paddingBottom: 62,
             justifyContent: "center",
           }}
         >
@@ -214,7 +214,7 @@ export default function Register() {
               borderColor: COLORS.border,
               backgroundColor: COLORS.cardBg,
               borderRadius: 12,
-              marginBottom: 24,
+              marginBottom: 14,
             }}
           >
             <TextInput
@@ -227,7 +227,7 @@ export default function Register() {
               style={{
                 paddingHorizontal: 16,
                 paddingRight: 44,
-                paddingVertical: Platform.select({ ios: 12, android: 10 }),
+                paddingVertical: Platform.select({ ios: 12, android: 8 }),
                 color: COLORS.inputText,
                 fontSize: 16,
               }}
@@ -256,7 +256,7 @@ export default function Register() {
             style={{
               backgroundColor: submitting ? "#16A34A99" : COLORS.success,
               borderRadius: 12,
-              paddingVertical: 12,
+              paddingVertical: 8,
               marginBottom: 24,
             }}
           >
