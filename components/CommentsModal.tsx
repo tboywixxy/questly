@@ -15,6 +15,7 @@ import ActionSheet, { useScrollHandlers } from "react-native-actions-sheet";
 import type { ActionSheetRef } from "react-native-actions-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../src/services/supabase";
+import { timeAgo } from "../src/utils/time"; // ← use shared time formatter
 
 type Props = {
   visible: boolean;
@@ -55,39 +56,49 @@ export default function CommentsModal({
 
   // Theme-aware colors
   const COLORS = {
-    sheetBg: isDark ? "#1F2937" : "#FFFFFF",          // gray-800 : white
-    indicator: isDark ? "#374151" : "#D1D5DB",        // gray-700 : gray-300
-    listText: isDark ? "#E5E7EB" : "#1F2937",         // gray-200 : gray-800
-    listSubText: isDark ? "#9CA3AF" : "#6B7280",      // gray-400 : gray-500
-    border: isDark ? "#374151" : "#E5E7EB",           // gray-700 : gray-200
-    composerBg: isDark ? "#1F2937" : "#FFFFFF",       // gray-800 : white
-    inputBg: isDark ? "#374151" : "#F3F4F6",          // gray-700 : gray-100
-    inputText: isDark ? "#F9FAFB" : "#111827",        // gray-50 : gray-900
-    placeholder: isDark ? "#9CA3AF" : "#6B7280",      // gray-400 : gray-500
+    sheetBg: isDark ? "#1F2937" : "#FFFFFF",
+    indicator: isDark ? "#374151" : "#D1D5DB",
+    listText: isDark ? "#E5E7EB" : "#1F2937",
+    listSubText: isDark ? "#9CA3AF" : "#6B7280",
+    border: isDark ? "#374151" : "#E5E7EB",
+    composerBg: isDark ? "#1F2937" : "#FFFFFF",
+    inputBg: isDark ? "#374151" : "#F3F4F6",
+    inputText: isDark ? "#F9FAFB" : "#111827",
+    placeholder: isDark ? "#9CA3AF" : "#6B7280",
   };
 
   // Composer height (fixed) + safe bottom
   const COMPOSER_H = 56;
   const bottomPad = useMemo(() => Math.max(insets.bottom, 12), [insets.bottom]);
-  const listBottomPadding = COMPOSER_H + bottomPad + 16; // space so list won't hide behind composer
+  const listBottomPadding = COMPOSER_H + bottomPad + 16;
 
   const scrollHandlers = useScrollHandlers("comments-sheet", listRef, () => {});
 
   async function load() {
-    if (!postId) return setRows([]);
+    if (!postId) {
+      setRows([]);
+      return;
+    }
+    // 👇 newest first
     const { data, error } = await supabase
       .from("comments_feed")
       .select("*")
       .eq("post_id", postId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false });
 
-    if (!error && data) setRows(data as CommentRow[]);
+    if (!error && data) {
+      setRows(data as CommentRow[]);
+      // ensure we are at the top (newest)
+      requestAnimationFrame(() => listRef.current?.scrollToOffset({ offset: 0, animated: false }));
+    }
   }
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!active) return;
       setUid(user?.id ?? null);
     })();
@@ -101,6 +112,7 @@ export default function CommentsModal({
       sheetRef.current?.show();
       load();
 
+      // realtime: prepend new comments so newest stays on top
       const ch = supabase
         .channel(`rt-comments-${postId}`)
         .on(
@@ -114,9 +126,10 @@ export default function CommentsModal({
               .eq("id", rec.id)
               .single();
             if (data) {
-              setRows((prev) => [...prev, data as CommentRow]);
+              setRows((prev) => [data as CommentRow, ...prev]); // 👈 prepend
               onCommentCountChange?.(1);
-              requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+              // keep view at top (where newest is)
+              requestAnimationFrame(() => listRef.current?.scrollToOffset({ offset: 0, animated: true }));
             }
           }
         )
@@ -196,7 +209,6 @@ export default function CommentsModal({
       drawUnderStatusBar
       statusBarTranslucent={Platform.OS === "android"}
       defaultOverlayOpacity={0.4}
-      // Small horizontal drag line, theme-aware
       indicatorStyle={{
         width: 48,
         height: 6,
@@ -207,10 +219,8 @@ export default function CommentsModal({
         backgroundColor: COLORS.sheetBg,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        // allow absolutely positioned composer inside
         position: "relative",
       }}
-      // 80% height sheet; adjust if you want taller/shorter
       snapPoints={[80]}
     >
       {/* Optional post preview */}
@@ -224,7 +234,7 @@ export default function CommentsModal({
         </Text>
       ) : null}
 
-      {/* SCROLLABLE LIST (Android & iOS) */}
+      {/* SCROLLABLE LIST (newest first) */}
       <FlatList
         ref={listRef}
         {...scrollHandlers}
@@ -235,7 +245,6 @@ export default function CommentsModal({
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingTop: 6,
-          // reserve space so list content doesn't hide behind the composer
           paddingBottom: listBottomPadding,
         }}
         renderItem={({ item }) => (
@@ -258,29 +267,25 @@ export default function CommentsModal({
                 className="text-[11px] mt-1"
                 style={{ color: COLORS.listSubText }}
               >
-                {new Date(item.created_at).toLocaleString()}
+                {timeAgo(item.created_at)}
               </Text>
             </View>
           </View>
         )}
         ListFooterComponent={<View style={{ height: 8 }} />}
-        onContentSizeChange={() => {
-          // auto-scroll to newest on first load
-          requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
-        }}
       />
 
-      {/* FIXED COMPOSER at bottom (no footer prop) */}
+      {/* FIXED COMPOSER */}
       <View
         style={{
           position: "absolute",
           left: 0,
           right: 0,
           bottom: 0,
-          paddingBottom: bottomPad, // safe area
+          paddingBottom: bottomPad,
           paddingTop: 8,
           paddingHorizontal: 16,
-          height: COMPOSER_H + bottomPad + 8, // reserve exact space
+          height: COMPOSER_H + bottomPad + 8,
           backgroundColor: COLORS.composerBg,
           borderTopWidth: 1,
           borderTopColor: COLORS.border,

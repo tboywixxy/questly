@@ -1,5 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useState, useMemo } from "react";
 import {
   Alert,
   Image,
@@ -12,172 +13,344 @@ import {
   TouchableWithoutFeedback,
   View,
   useColorScheme,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
-import { supabase } from "../../src/services/supabase";
-
-const BUCKET = "post_media";
+import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function CreatePostTab() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const router = useRouter();
+  const isDark = useColorScheme() === "dark";
 
-  // Theme palette (Tailwind-ish grays)
-  const COLORS = {
-    pageBg: isDark ? "#111827" : "#F3F4F6",        // gray-900 : gray-100
-    cardBg: isDark ? "#1F2937" : "#FFFFFF",        // gray-800 : white
-    border: isDark ? "#374151" : "#D1D5DB",        // gray-700 : gray-300
-    textPrimary: isDark ? "#FFFFFF" : "#111827",   // white : gray-900
-    textSecondary: isDark ? "#D1D5DB" : "#4B5563", // gray-300 : gray-600
-    inputBg: isDark ? "#1F2937" : "#FFFFFF",       // match card
-    inputText: isDark ? "#F9FAFB" : "#111827",     // gray-50 : gray-900
-    placeholder: isDark ? "#9CA3AF" : "#6B7280",   // gray-400 : gray-500
-    brandBlue: "#2563EB",
-    danger: "#DC2626",
-    success: "#16A34A",
-  };
+  const C = useMemo(
+    () => ({
+      pageBg: isDark ? "#0B1220" : "#F7F7FB",
+      cardBg: isDark ? "#121A2A" : "#FFFFFF",
+      border: isDark ? "#243149" : "#E7E8EC",
+      text: isDark ? "#FFFFFF" : "#0B1220",
+      subtext: isDark ? "#9FB0CF" : "#61708A",
+      blue: "#2563EB",
+      green: "#16A34A",
+      red: "#EF4444",
+      dashed: isDark ? "#32405F" : "#CBD5E1",
+      chipBg: isDark ? "rgba(255,255,255,0.06)" : "#F2F4F8",
+    }),
+    [isDark]
+  );
 
   const [content, setContent] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [picking, setPicking] = useState(false);
 
-  async function pickImage() {
+  const canContinue = content.trim().length > 0 || !!imageUri;
+
+  async function requestMediaPerm() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert("Permission needed", "Allow photo access.");
-      return;
+      return false;
     }
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-    });
-    if (!res.canceled && res.assets?.length) setImageUri(res.assets[0].uri);
+    return true;
+  }
+  async function requestCameraPerm() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Allow camera access.");
+      return false;
+    }
+    return true;
   }
 
-  async function uploadIfAny(userId: string) {
-    if (!imageUri) return null;
-    const file = await fetch(imageUri);
-    // @ts-ignore React Native fetch supports arrayBuffer at runtime
-    const buf: ArrayBuffer = await file.arrayBuffer();
-    const path = `${userId}/${Date.now()}.jpg`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, buf, {
-      contentType: "image/jpeg",
-      upsert: true,
-    });
-    if (error) throw error;
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    return data.publicUrl;
-  }
-
-  async function handlePost() {
-    if (saving) return; // prevent double taps
-    if (!content.trim() && !imageUri) {
-      Alert.alert("Empty", "Write something or add an image.");
-      return;
-    }
+  async function pickFromGallery() {
+    const ok = await requestMediaPerm();
+    if (!ok) return;
+    setPicking(true);
     try {
-      setSaving(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert("Login required", "Please sign in first.");
-        return;
-      }
-
-      const mediaUrl = await uploadIfAny(user.id);
-      const { error } = await supabase.from("posts").insert({
-        user_id: user.id,
-        content: content.trim(),
-        media_url: mediaUrl,
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.9,
       });
-      if (error) throw error;
-
-      setContent("");
-      setImageUri(null);
-      Alert.alert("Posted", "Your post is live!");
-      Keyboard.dismiss();
-    } catch (e: any) {
-      Alert.alert("Post failed", e?.message ?? "Something went wrong");
+      if (!res.canceled && res.assets?.length) {
+        const uri = res.assets[0].uri;
+        setImageUri(uri);
+        router.push({
+          pathname: "/edit",
+          params: { imageUri: uri, content: content.trim() },
+        });
+      }
     } finally {
-      setSaving(false);
+      setPicking(false);
     }
+  }
+
+  async function openCamera() {
+    const ok = await requestCameraPerm();
+    if (!ok) return;
+    setPicking(true);
+    try {
+      const res = await ImagePicker.launchCameraAsync({ quality: 0.9 });
+      if (!res.canceled && res.assets?.length) {
+        const uri = res.assets[0].uri;
+        setImageUri(uri);
+        router.push({
+          pathname: "/edit",
+          params: { imageUri: uri, content: content.trim() },
+        });
+      }
+    } finally {
+      setPicking(false);
+    }
+  }
+
+  function continueToEditor() {
+    if (!canContinue) {
+      Alert.alert("Empty", "Pick an image or write something.");
+      return;
+    }
+    router.push({
+      pathname: "/edit",
+      params: { imageUri: imageUri ?? "", content: content.trim() },
+    });
   }
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <KeyboardAvoidingView
-        key={colorScheme} // 👈 instant re-mount on theme change
-        behavior={Platform.select({ ios: "padding", android: undefined })}
-        style={{ flex: 1 }}
+      <SafeAreaView
+        edges={["left", "right", "bottom"]}
+        style={{ flex: 1, backgroundColor: C.pageBg }}
       >
-        <View style={{ flex: 1, backgroundColor: COLORS.pageBg, paddingHorizontal: 24, paddingVertical: 32 }}>
-          <Text style={{ fontSize: 24, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 24 }}>
-            Create
-          </Text>
-
-          <TextInput
-            value={content}
-            onChangeText={setContent}
-            placeholder="What's new?"
-            placeholderTextColor={COLORS.placeholder}
-            multiline
-            style={{
-              minHeight: 120,
-              borderWidth: 1,
-              borderColor: COLORS.border,
-              backgroundColor: COLORS.inputBg,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              color: COLORS.inputText,
-              marginBottom: 16,
-              textAlignVertical: "top",
-            }}
-            returnKeyType="done"
-          />
-
-          {imageUri ? (
-            <View style={{ marginBottom: 16 }}>
-              <Image
-                source={{ uri: imageUri }}
-                style={{ width: "100%", height: 224, borderRadius: 16 }}
-                resizeMode="cover"
-              />
-              <TouchableOpacity onPress={() => setImageUri(null)} style={{ marginTop: 8 }}>
-                <Text style={{ color: COLORS.danger, fontWeight: "600" }}>Remove image</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={pickImage}
-              activeOpacity={0.9}
-              style={{
-                backgroundColor: COLORS.cardBg,
-                borderWidth: 1,
-                borderColor: COLORS.border,
-                borderRadius: 16,
-                padding: 16,
-                marginBottom: 16,
-              }}
-            >
-              <Text style={{ color: COLORS.brandBlue, fontWeight: "600" }}>Add image</Text>
-            </TouchableOpacity>
-          )}
+        {/* Header (56px tall: used as offset for iOS padding behavior if you ever switch headers on) */}
+        <View
+          style={{
+            height: 56,
+            paddingHorizontal: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text style={{ fontSize: 22, fontWeight: "800", color: C.text }}>Create</Text>
 
           <TouchableOpacity
-            disabled={saving}
-            onPress={handlePost}
-            activeOpacity={0.9}
+            disabled={!canContinue || picking}
+            onPress={continueToEditor}
             style={{
-              backgroundColor: saving ? "#16A34A99" : COLORS.success,
-              paddingVertical: 12,
-              borderRadius: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: !canContinue || picking ? `${C.green}66` : C.green,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
             }}
           >
-            <Text style={{ textAlign: "center", color: "#FFFFFF", fontWeight: "600", fontSize: 18 }}>
-              {saving ? "Posting..." : "Post"}
-            </Text>
+            {picking ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="arrow-forward" size={16} color="#fff" />
+                <Text style={{ color: "#fff", fontWeight: "700" }}>Continue</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+
+        {/* IMPORTANT: KeyboardAvoidingView enables resize on iOS; on Android we use "height"
+            and pair it with app.json -> adjustResize (see section 2 below). */}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.select({ ios: "padding", android: "height" })}
+          // if you add a visible native header later, bump this offset (e.g., 56 or StatusBar height)
+          keyboardVerticalOffset={0}
+        >
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.select({ ios: "interactive", android: "on-drag" })}
+            contentInsetAdjustmentBehavior="always"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Caption card */}
+            <View
+              style={{
+                backgroundColor: C.cardBg,
+                borderColor: C.border,
+                borderWidth: 1,
+                borderRadius: 16,
+                padding: 14,
+                marginTop: 8,
+              }}
+            >
+              <TextInput
+                value={content}
+                onChangeText={setContent}
+                placeholder="What's new?"
+                placeholderTextColor={C.subtext}
+                multiline
+                style={{
+                  minHeight: 120,
+                  color: C.text,
+                  textAlignVertical: "top",
+                  fontSize: 16,
+                }}
+                maxLength={500}
+                returnKeyType="done"
+                blurOnSubmit
+              />
+              <View
+                style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}
+              >
+                <Text style={{ color: C.subtext, fontSize: 12 }}>
+                  Share a quick thought or add a photo.
+                </Text>
+                <Text style={{ color: C.subtext, fontSize: 12 }}>{content.length}/500</Text>
+              </View>
+            </View>
+
+            {/* Image area */}
+            {imageUri ? (
+              <View
+                style={{
+                  marginTop: 16,
+                  backgroundColor: C.cardBg,
+                  borderColor: C.border,
+                  borderWidth: 1,
+                  borderRadius: 16,
+                  overflow: "hidden",
+                }}
+              >
+                <Image
+                  source={{ uri: imageUri }}
+                  style={{ width: "100%", height: 240 }}
+                  resizeMode="cover"
+                />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    padding: 12,
+                    borderTopWidth: 1,
+                    borderTopColor: C.border,
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={() => setImageUri(null)}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      borderRadius: 10,
+                      backgroundColor: C.chipBg,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={C.red} />
+                    <Text style={{ color: C.red, fontWeight: "700" }}>Remove</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={pickFromGallery}
+                    disabled={picking}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: C.border,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {picking ? (
+                      <ActivityIndicator />
+                    ) : (
+                      <>
+                        <Ionicons name="images-outline" size={16} color={C.text} />
+                        <Text style={{ color: C.text, fontWeight: "700" }}>Change</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View
+                style={{
+                  marginTop: 16,
+                  borderWidth: 2,
+                  borderStyle: "dashed",
+                  borderColor: C.dashed,
+                  backgroundColor: C.cardBg,
+                  borderRadius: 16,
+                  paddingVertical: 28,
+                  paddingHorizontal: 16,
+                  alignItems: "center",
+                }}
+              >
+                <Ionicons name="image-outline" size={42} color={C.subtext} />
+                <Text style={{ color: C.text, fontWeight: "700", marginTop: 10, fontSize: 16 }}>
+                  Add an image
+                </Text>
+                <Text style={{ color: C.subtext, marginTop: 6, textAlign: "center" }}>
+                  Pick from gallery or snap a photo. We’ll open the editor right after.
+                </Text>
+
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
+                  <TouchableOpacity
+                    onPress={pickFromGallery}
+                    disabled={picking}
+                    style={{
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: C.border,
+                      backgroundColor: C.chipBg,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    {picking ? (
+                      <ActivityIndicator />
+                    ) : (
+                      <>
+                        <Ionicons name="images-outline" size={18} color={C.text} />
+                        <Text style={{ color: C.text, fontWeight: "700" }}>Gallery</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={openCamera}
+                    disabled={picking}
+                    style={{
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      borderRadius: 999,
+                      backgroundColor: C.blue,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    {picking ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="camera-outline" size={18} color="#fff" />
+                        <Text style={{ color: "#fff", fontWeight: "700" }}>Camera</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </TouchableWithoutFeedback>
   );
 }

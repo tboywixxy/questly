@@ -4,39 +4,69 @@
     "slug": "Questly",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
     "scheme": "questly",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+
+    "icon": "./assets/images/logo-em-bg-black.png",
+
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/logo-em-bg-black.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FFFFFF",
+      "dark": {
+        "image": "./assets/images/logo-rm-bg-light.png",
+        "backgroundColor": "#000000",
+        "resizeMode": "contain"
+      }
     },
+
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./assets/images/logo-em-bg-black.png",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We use your location to tag your post with your city/state."
+      }
     },
+
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/logo-em-bg-black.png",
+        "backgroundColor": "#000000"
       },
       "softwareKeyboardLayoutMode": "pan",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
+
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(Questly) to use your location.",
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ],
+      "expo-font",
+      "expo-secure-store"
     ],
-      "extra": {
-      "eas": { "projectId": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b" },
-      "EXPO_PUBLIC_EAS_PROJECT_ID": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b"
+
+    "extra": {
+      "eas": {
+        "projectId": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b"
+      },
+      "EXPO_PUBLIC_EAS_PROJECT_ID": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b",
+      "EXPO_PUBLIC_SUPABASE_URL": "https://sgrpmhnqpnxyjwbfmydh.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNncnBtaG5xcG54eWp3YmZteWRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyMjkyNTYsImV4cCI6MjA3NDgwNTI1Nn0.75BTFR7EANn3_gB6XgbcROh9TqRNe4bE0dagzfh4O4c"
     },
+
     "experiments": {
       "typedRoutes": true
     }

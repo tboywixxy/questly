@@ -16,5 +16,5 @@
     "app/_layout.jsx",
     "app/index.jsx",
     "nativewind-env.d.ts"
-  ]
+, "src/services/supabase.js"  ]
 }

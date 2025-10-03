@@ -18,7 +18,7 @@ function ThemedStack() {
   const GRAY_100 = "#F3F4F6"; // bg-gray-100
   const GRAY_900 = "#111827"; // bg-gray-900
 
-  const pageBg = isDark ? GRAY_900 : GRAY_100;
+  const pageBg = isDark ? GRAY_900 : "#fff";
   const headerBg = pageBg;
   const headerTint = isDark ? "#FFFFFF" : "#000000";
 
@@ -74,7 +74,7 @@ function ThemedStack() {
           name="notifications"
           options={{
             headerShown: true,
-            headerTitle: "Notifications",
+            headerTitle: "",
             headerShadowVisible: false,
             contentStyle: {
               backgroundColor: pageBg,
@@ -82,11 +82,61 @@ function ThemedStack() {
             },
           }}
         />
+        <Stack.Screen name="edit" options={{ title: "Edit", headerBackTitle: "", contentStyle: {
+              backgroundColor: pageBg,
+              // no paddingTop here
+            }, }} />
+            <Stack.Screen
+              name="support"
+              options={{
+                headerShown: true,
+                headerTitle: "",
+                headerShadowVisible: false,
+                contentStyle: { backgroundColor: "transparent" }, // if you’re using a global wallpaper/watermark
+              }}
+            />
+
+        <Stack.Screen
+          name="password"
+          options={{
+            headerShown: true,
+            headerTitle: "",
+            headerShadowVisible: false,
+            contentStyle: {
+              backgroundColor: pageBg,
+              // no paddingTop here
+            },
+          }}
+        />
+        <Stack.Screen
+          name="user/[id]"
+          options={{
+            headerShown: true,
+            headerTitle: "",
+            headerShadowVisible: false,
+            contentStyle: {
+              backgroundColor: pageBg,
+              // no paddingTop here
+            },
+          }}
+        />
+        <Stack.Screen
+          name="[postedId]"
+          options={{
+            headerShown: true,
+            headerTitle: "",
+            headerShadowVisible: false,
+            contentStyle: {
+              backgroundColor: pageBg,
+              // no paddingTop here
+            },
+          }}
+        />
         <Stack.Screen
           name="profile"
           options={{
             headerShown: true,
-            headerTitle: "Edit Profile",
+            headerTitle: "",
             headerShadowVisible: false,
             contentStyle: {
               backgroundColor: pageBg,

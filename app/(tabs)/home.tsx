@@ -3,8 +3,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
+  Animated,
+  Easing,
   FlatList,
   Image,
   Pressable,
@@ -13,12 +13,19 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
+  Alert,
+  Platform,
 } from "react-native";
 import CommentsModal from "../../components/CommentsModal";
 import { supabase } from "../../src/services/supabase";
 import { getBadge } from "../../src/utils/badges";
 import { tinyTap } from "../../src/utils/haptics";
 
+/* ----------------------------- ASSETS ---------------------------- */
+const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png"); // light mode
+const LOGO_DARK = require("../../assets/images/logo-rm-bg-light.png"); // dark mode
+
+/* ----------------------------- TYPES ----------------------------- */
 type FeedRow = {
   id: string;
   user_id: string;
@@ -29,31 +36,363 @@ type FeedRow = {
   avatar_url: string | null;
   like_count: number;
   comment_count: number;
+  place_name: string | null;
 };
 
+/* --------------------------- THEME UTILS ------------------------- */
+function useTheme() {
+  const isDark = useColorScheme() === "dark";
+  return {
+    isDark,
+    C: {
+      pageBg: isDark ? "#0B1220" : "#F5F7FB",
+      cardBg: isDark ? "#111827" : "#FFFFFF",
+      cardAlt: isDark ? "#0F172A" : "#F1F5F9",
+      textPri: isDark ? "#F9FAFB" : "#0F172A",
+      textSec: isDark ? "#C2C8D6" : "#5B6474",
+      hair: isDark ? "#1F2937" : "#E6E8EF",
+      border: isDark ? "#253047" : "#E5E7EB",
+      accent: "#2563EB",
+      danger: "#EF4444",
+      likePill: isDark ? "#1F2937" : "#EFF4FB",
+    },
+  };
+}
+
+/* --------------------------- TIME AGO ---------------------------- */
+function timeAgo(iso: string) {
+  const t = new Date(iso).getTime();
+  const s = Math.max(1, Math.floor((Date.now() - t) / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  const w = Math.floor(d / 7);
+  if (w < 4) return `${w}w`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `${mo}mo`;
+  const y = Math.floor(d / 365);
+  return `${y}y`;
+}
+
+/* ------------------------- SKELETON PIECES ----------------------- */
+function Shimmer({
+  width,
+  height,
+  radius = 8,
+}: {
+  width: number | string;
+  height: number;
+  radius?: number;
+}) {
+  const { C } = useTheme();
+  const shine = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shine, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        Animated.timing(shine, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [shine]);
+
+  const translateX = shine.interpolate({ inputRange: [0, 1], outputRange: [-100, 300] });
+
+  return (
+    <View style={{ width, height, borderRadius: radius, backgroundColor: C.hair, overflow: "hidden" }}>
+      <Animated.View
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 80,
+          transform: [{ translateX }],
+          opacity: 0.25,
+          backgroundColor: "#FFFFFF",
+        }}
+      />
+    </View>
+  );
+}
+
+function SkeletonCard({ delay = 0 }: { delay?: number }) {
+  const { C } = useTheme();
+  const appear = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(appear, {
+      toValue: 1,
+      duration: 300,
+      delay,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [appear, delay]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: appear,
+        transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+        backgroundColor: C.cardBg,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: C.border,
+        padding: 14,
+        marginBottom: 14,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Shimmer width={40} height={40} radius={20} />
+        <View style={{ marginLeft: 10, flex: 1 }}>
+          <Shimmer width="40%" height={14} />
+          <View style={{ height: 6 }} />
+          <Shimmer width="25%" height={10} />
+        </View>
+      </View>
+
+      <View style={{ height: 10 }} />
+
+      <Shimmer width="90%" height={12} />
+      <View style={{ height: 6 }} />
+      <Shimmer width="70%" height={12} />
+
+      <View style={{ height: 10 }} />
+
+      <Shimmer width="100%" height={220} radius={12} />
+
+      <View style={{ height: 12 }} />
+
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Shimmer width={60} height={26} radius={8} />
+        <Shimmer width={80} height={26} radius={8} />
+      </View>
+    </Animated.View>
+  );
+}
+
+/* ----------------------- MEDIA (NO-CROP) VIEW -------------------- */
+function MediaView({ uri }: { uri: string }) {
+  const { C } = useTheme();
+  const [ratio, setRatio] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    Image.getSize(
+      uri,
+      (w, h) => mounted && setRatio(w > 0 && h > 0 ? w / h : 1),
+      () => mounted && setRatio(1)
+    );
+    return () => {
+      mounted = false;
+    };
+  }, [uri]);
+
+  const effectiveRatio = (() => {
+    const r = ratio ?? 1;
+    const MIN = 0.6;
+    const MAX = 1.6;
+    return Math.min(Math.max(r, MIN), MAX);
+  })();
+
+  return (
+    <View
+      style={{
+        width: "100%",
+        aspectRatio: effectiveRatio,
+        backgroundColor: C.cardAlt,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="contain" />
+    </View>
+  );
+}
+
+/* ---------------------------- FEED CARD -------------------------- */
+function FeedCard({
+  item,
+  meLiked,
+  onToggleLike,
+  onOpenComments,
+  index,
+  onPressUser,
+}: {
+  item: FeedRow;
+  meLiked: boolean;
+  onToggleLike: (post: FeedRow) => void;
+  onOpenComments: (post: FeedRow) => void;
+  index: number;
+  onPressUser: (userId: string) => void;
+}) {
+  const { C } = useTheme();
+  const badge = getBadge(item.like_count);
+
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 420,
+      delay: 70 * index,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [enter, index]);
+
+  const likeScale = useRef(new Animated.Value(1)).current;
+  const commentScale = useRef(new Animated.Value(1)).current;
+  const pressIn = (v: Animated.Value) =>
+    Animated.timing(v, { toValue: 0.94, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+  const pressOut = (v: Animated.Value) =>
+    Animated.timing(v, { toValue: 1, duration: 120, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+
+  return (
+    <Animated.View
+      style={{
+        transform: [
+          { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) },
+          { scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) },
+        ],
+        opacity: enter,
+        backgroundColor: C.cardBg,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: C.border,
+        marginBottom: 14,
+        overflow: "hidden",
+      }}
+    >
+      {/* Header */}
+      <View style={{ paddingHorizontal: 14, paddingTop: 14, paddingBottom: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Pressable onPress={() => onPressUser(item.user_id)}>
+            {item.avatar_url ? (
+              <Image source={{ uri: item.avatar_url }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }} />
+            ) : (
+              <View style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10, backgroundColor: C.hair }} />
+            )}
+          </Pressable>
+
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
+              <Pressable onPress={() => onPressUser(item.user_id)}>
+                <Text style={{ color: C.textPri, fontWeight: "700" }}>{item.username || "User"}</Text>
+              </Pressable>
+              {badge && (
+                <View
+                  style={{
+                    marginLeft: 8,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 999,
+                    backgroundColor: "#111827",
+                  }}
+                >
+                  <Text style={{ color: "#FFF", fontSize: 11, fontWeight: "800" }}>{badge.label}</Text>
+                </View>
+              )}
+            </View>
+
+            {!!item.place_name && <Text style={{ color: C.textSec, fontSize: 12, marginTop: 2 }}>📍 {item.place_name}</Text>}
+          </View>
+        </View>
+
+        {!!item.content && (
+          <Text style={{ color: C.textPri, opacity: 0.9, marginTop: 8, lineHeight: 20 }} numberOfLines={6}>
+            {item.content}
+          </Text>
+        )}
+      </View>
+
+      {/* Media */}
+      {!!item.media_url && <MediaView uri={item.media_url} />}
+
+      {/* Actions */}
+      <View style={{ paddingHorizontal: 14, paddingTop: 10, paddingBottom: 6, flexDirection: "row", alignItems: "center" }}>
+        {/* Likes */}
+        <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+          <TouchableOpacity
+            onPressIn={() => pressIn(likeScale)}
+            onPressOut={() => pressOut(likeScale)}
+            onPress={() => onToggleLike(item)}
+            activeOpacity={0.9}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: C.likePill,
+              paddingVertical: 6,
+              paddingHorizontal: 10,
+              borderRadius: 10,
+              marginRight: 12,
+            }}
+          >
+            <Text style={{ color: C.textPri, fontWeight: "700", marginRight: 6 }}>{item.like_count}</Text>
+            <Text style={{ color: C.textPri }}>{meLiked ? "♥️" : "♡"}</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Comments */}
+        <Animated.View style={{ transform: [{ scale: commentScale }] }}>
+          <TouchableOpacity
+            onPressIn={() => pressIn(commentScale)}
+            onPressOut={() => pressOut(commentScale)}
+            onPress={() => onOpenComments(item)}
+            activeOpacity={0.9}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: C.likePill,
+              paddingVertical: 6,
+              paddingHorizontal: 10,
+              borderRadius: 10,
+            }}
+          >
+            <Text style={{ color: C.textPri, fontWeight: "700", marginRight: 6 }}>{item.comment_count}</Text>
+            <Text style={{ color: C.textPri }}>💬</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+
+      {/* Time-ago */}
+      <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+        <Text style={{ color: C.textSec, fontSize: 12 }}>{timeAgo(item.created_at)} ago</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+/* ------------------------------ MAIN ------------------------------ */
 export default function FeedTab() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const iconColor = colorScheme === "dark" ? "#FFFFFF" : "#111827";
+  const { C, isDark } = useTheme();
+  const iconColor = isDark ? "#FFFFFF" : "#111827";
 
   const [rows, setRows] = useState<FeedRow[]>([]);
   const [likedByMe, setLikedByMe] = useState<Record<string, boolean>>({});
-  const [authorTotals, setAuthorTotals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // unread count for the bell dot
   const [unread, setUnread] = useState(0);
+  const [myId, setMyId] = useState<string | null>(null);
 
-  // comments modal
+  // iOS sheet state
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [activePost, setActivePost] = useState<FeedRow | null>(null);
 
-  // avoid rapid double-like taps
   const likeLocks = useRef<Record<string, boolean>>({});
 
   const loadUnread = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    setMyId(user?.id ?? null);
     if (!user) return setUnread(0);
     const { count, error } = await supabase
       .from("notifications")
@@ -71,9 +410,10 @@ export default function FeedTab() {
       const feed = (data as FeedRow[]) ?? [];
       setRows(feed);
 
-      // preload likedByMe for current user
       const { data: auth } = await supabase.auth.getUser();
       const user = auth.user;
+      setMyId(user?.id ?? null);
+
       if (user && feed.length) {
         const ids = feed.map((r) => r.id);
         const { data: myLikes } = await supabase
@@ -87,21 +427,6 @@ export default function FeedTab() {
         setLikedByMe(map);
       } else {
         setLikedByMe({});
-      }
-
-      // totals for badges (per author on this page)
-      const authorIds = Array.from(new Set(feed.map((p) => p.user_id)));
-      if (authorIds.length) {
-        const { data: totals } = await supabase
-          .from("user_like_totals")
-          .select("user_id,total_likes")
-          .in("user_id", authorIds);
-
-        const byId: Record<string, number> = {};
-        (totals ?? []).forEach((t: any) => (byId[t.user_id] = t.total_likes));
-        setAuthorTotals(byId);
-      } else {
-        setAuthorTotals({});
       }
     } catch (e: any) {
       console.log("Feed load error:", e?.message);
@@ -119,18 +444,20 @@ export default function FeedTab() {
     initialFetch();
   }, [initialFetch]);
 
-  // refresh unread when returning to this screen
   useFocusEffect(
     useCallback(() => {
       loadUnread();
+      return undefined;
     }, [loadUnread])
   );
 
-  // realtime: bump unread on inserts for me
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setMyId(user?.id ?? null);
       if (!user) return;
       channel = supabase
         .channel("rt-unread-on-feed")
@@ -161,35 +488,20 @@ export default function FeedTab() {
 
     const currentlyLiked = !!likedByMe[post.id];
 
-    // tiny haptic immediately
     tinyTap();
 
-    // optimistic UI
+    // optimistic update
     setLikedByMe((prev) => ({ ...prev, [post.id]: !currentlyLiked }));
     setRows((prev) =>
-      prev.map((p) =>
-        p.id === post.id
-          ? { ...p, like_count: Math.max(0, p.like_count + (currentlyLiked ? -1 : 1)) }
-          : p
-      )
+      prev.map((p) => (p.id === post.id ? { ...p, like_count: Math.max(0, p.like_count + (currentlyLiked ? -1 : 1)) } : p))
     );
-    setAuthorTotals((prev) => ({
-      ...prev,
-      [post.user_id]: Math.max(0, (prev[post.user_id] ?? 0) + (currentlyLiked ? -1 : 1)),
-    }));
 
     try {
       if (currentlyLiked) {
-        const { error } = await supabase
-          .from("post_likes")
-          .delete()
-          .eq("post_id", post.id)
-          .eq("user_id", user.id);
+        const { error } = await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("post_likes")
-          .insert({ post_id: post.id, user_id: user.id });
+        const { error } = await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id });
         if (error) throw error;
       }
     } catch (e: any) {
@@ -197,179 +509,125 @@ export default function FeedTab() {
       setLikedByMe((prev) => ({ ...prev, [post.id]: currentlyLiked }));
       setRows((prev) =>
         prev.map((p) =>
-          p.id === post.id
-            ? { ...p, like_count: Math.max(0, p.like_count + (currentlyLiked ? 1 : -1)) }
-            : p
+          p.id === post.id ? { ...p, like_count: Math.max(0, p.like_count + (currentlyLiked ? 1 : -1)) } : p
         )
       );
-      setAuthorTotals((prev) => ({
-        ...prev,
-        [post.user_id]: Math.max(0, (prev[post.user_id] ?? 0) + (currentlyLiked ? 1 : -1)),
-      }));
       Alert.alert("Error", e?.message ?? "Could not update like");
     } finally {
       likeLocks.current[post.id] = false;
     }
   }
 
-  function openComments(post: FeedRow) {
+function openComments(post: FeedRow) {
+  if (Platform.OS === "android") {
+    // ✅ put the id in the path; pass preview as query
+    const preview = encodeURIComponent(post.content ?? "");
+    router.push(`/comments/${post.id}?preview=${preview}`);
+  } else {
     setActivePost(post);
     setCommentsOpen(true);
+  }
   }
   function closeComments() {
     setCommentsOpen(false);
   }
   function bumpCommentCount(delta: number) {
-    if (!activePost) return;
     setRows((prev) =>
-      prev.map((p) =>
-        p.id === activePost.id
-          ? { ...p, comment_count: Math.max(0, p.comment_count + delta) }
-          : p
-      )
+      prev.map((p) => (activePost && p.id === activePost.id ? { ...p, comment_count: Math.max(0, p.comment_count + delta) } : p))
     );
   }
 
-  if (loading) {
-    return (
-      <View className="flex-1 justify-center items-center bg-gray-100 dark:bg-gray-900">
-        <ActivityIndicator />
-      </View>
-    );
-  }
+  // Route to user page or my own profile
+  const onPressUser = useCallback(
+    (userId: string) => {
+      if (myId && userId === myId) {
+        router.push("/profile"); // own profile
+      } else {
+        router.push(`/user/${userId}`); // public profile
+      }
+    },
+    [router, myId]
+  );
 
   const empty = !rows || rows.length === 0;
 
   return (
-    <View className="flex-1 bg-gray-100 dark:bg-gray-900">
-      {/* Your own header row with title + bell on the right */}
-      <View className="px-6 pt-6 pb-3 flex-row items-center justify-between">
-        <Text className="text-2xl font-bold text-gray-900 dark:text-white">Feed</Text>
+    <View style={{ flex: 1, backgroundColor: C.pageBg }}>
+      {/* Header: logo + title + bell */}
+      <View
+        style={{
+          paddingHorizontal: 8,
+          paddingTop: 2,
+          paddingBottom: 6,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* Left: logo + title/subtitle */}
+        <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+          <Image
+            source={isDark ? LOGO_DARK : LOGO_LIGHT}
+            resizeMode="contain"
+            style={{ width: 68, height: 68, marginRight: 0, borderRadius: 6 }}
+          />
+          <View style={{ flexShrink: 1 }}>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: C.textPri }}>Feed</Text>
+            <Text style={{ color: C.textSec, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+              Welcome back 👋
+            </Text>
+          </View>
+        </View>
 
-        <Pressable
-          onPress={() => router.push("/notifications")}
-          hitSlop={12}
-          style={{ paddingHorizontal: 6, paddingVertical: 2 }}
-        >
+        {/* Right: notifications bell */}
+        <Pressable onPress={() => router.push("/notifications")} hitSlop={12} style={{ paddingHorizontal: 6, paddingVertical: 2 }}>
           <View>
-            <Ionicons name="notifications-outline" size={24} color={iconColor} />
-            {unread > 0 && (
-              <View
-                style={{
-                  position: "absolute",
-                  right: -2,
-                  top: -2,
-                  width: 9,
-                  height: 9,
-                  borderRadius: 6,
-                  backgroundColor: "#ef4444",
-                }}
-              />
-            )}
+            <Ionicons name="notifications-outline" size={24} color={isDark ? "#FFFFFF" : "#111827"} />
+            {unread > 0 && <View style={{ position: "absolute", right: -2, top: -2, width: 9, height: 9, borderRadius: 6, backgroundColor: C.danger }} />}
           </View>
         </Pressable>
       </View>
 
-      {empty ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500 dark:text-gray-400">No posts yet</Text>
+      {/* Loading / Empty / Feed */}
+      {loading ? (
+        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 10 }}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <SkeletonCard key={i} delay={i * 90} />
+          ))}
+        </View>
+      ) : empty ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: C.textSec }}>No posts yet</Text>
         </View>
       ) : (
         <FlatList
           data={rows}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 15, paddingBottom: 75 }}
-          renderItem={({ item }) => {
-            const meLiked = !!likedByMe[item.id];
-            const totalForAuthor = authorTotals[item.user_id] ?? 0;
-            const badge = getBadge(totalForAuthor);
-
-            return (
-              <View className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden mb-4">
-                {/* Header */}
-                <View className="px-4 pt-4 pb-2">
-                  <View className="flex-row items-center">
-                    {item.avatar_url ? (
-                      <Image source={{ uri: item.avatar_url }} className="w-9 h-9 rounded-full mr-2" />
-                    ) : (
-                      <View className="w-9 h-9 rounded-full bg-gray-300 mr-2" />
-                    )}
-                    <Text className="text-gray-900 dark:text-white font-semibold">
-                      {item.username || "User"}
-                    </Text>
-                    {badge && (
-                      <View className={`ml-2 px-2 py-0.5 rounded-full ${badge.colorClass}`}>
-                        <Text className="text-white text-xs font-bold">{badge.label}</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {!!item.content && (
-                    <Text className="text-gray-700 dark:text-gray-300 mt-3" numberOfLines={6}>
-                      {item.content}
-                    </Text>
-                  )}
-                </View>
-
-                {/* Fixed-height image for a consistent card look */}
-                {item.media_url ? (
-                  <Image
-                    source={{ uri: item.media_url }}
-                    className="w-full"
-                    style={{ height: 260 }}
-                    resizeMode="cover"
-                  />
-                ) : null}
-
-                {/* Actions: counts BEFORE icons, no labels */}
-                <View className="px-4 py-3 flex-row items-center">
-                  {/* Likes */}
-                  <View className="flex-row items-center mr-6">
-                    <Text className="text-gray-900 dark:text-white mr-1">
-                      {item.like_count}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => toggleLikeOptimistic(item)}
-                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                      className="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700"
-                      activeOpacity={0.9}
-                    >
-                      <Text className="text-gray-900 dark:text-white" aria-label="Like">
-                        {meLiked ? "♥️" : "♡"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Comments */}
-                  <View className="flex-row items-center">
-                    <Text className="text-gray-900 dark:text-white mr-1">
-                      {item.comment_count}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => openComments(item)}
-                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                      className="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700"
-                      activeOpacity={0.9}
-                    >
-                      <Text className="text-gray-900 dark:text-white" aria-label="Comments">💬</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            );
-          }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 10, paddingBottom: 80 }}
+          renderItem={({ item, index }) => (
+            <FeedCard
+              item={item}
+              index={index}
+              meLiked={!!likedByMe[item.id]}
+              onToggleLike={toggleLikeOptimistic}
+              onOpenComments={openComments}
+              onPressUser={onPressUser}
+            />
+          )}
         />
       )}
 
-      {/* Comments Modal */}
-      <CommentsModal
-        visible={commentsOpen}
-        postId={activePost?.id ?? null}
-        postPreview={activePost?.content ?? null}
-        onClose={closeComments}
-        onCommentCountChange={bumpCommentCount}
-      />
+      {/* iOS-only comments sheet */}
+      {Platform.OS === "ios" && (
+        <CommentsModal
+          visible={commentsOpen}
+          postId={activePost?.id ?? null}
+          postPreview={activePost?.content ?? null}
+          onClose={closeComments}
+          onCommentCountChange={bumpCommentCount}
+        />
+      )}
     </View>
   );
 }
