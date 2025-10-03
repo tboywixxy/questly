@@ -1,4 +1,3 @@
-// app/(tabs)/_layout.tsx
 import * as React from "react";
 import { Tabs } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -15,12 +14,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type IconName = React.ComponentProps<typeof FontAwesome>["name"];
 
-// --- Layout sizing ---
-const BAR_HEIGHT = 64; // visual height of the pill
-const V_MARGIN = Platform.select({ ios: 4, android: 6 }) ?? 16; // distance from bottom
+const BAR_HEIGHT = 64; 
+const V_MARGIN = Platform.select({ ios: 4, android: 6 }) ?? 16; 
 const H_MARGIN = 16;
 
-// 🔹 Provide “how much space the content needs under the pill”
 const ClearanceContext = React.createContext(0);
 export const useTabBarClearance = () => React.useContext(ClearanceContext);
 
@@ -58,7 +55,6 @@ function AnimatedTabIcon({
     }).start();
   }, [focused]);
 
-  // gentle spin for cog
   const rotation = React.useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
     if (name !== "cog") return;
@@ -94,7 +90,6 @@ function AnimatedTabIcon({
   );
 }
 
-// Floating pill tab bar (unchanged position: bottom = V_MARGIN)
 function FloatingPillTabBar({ state, descriptors, navigation }: any) {
   const { ACTIVE, INACTIVE, TAB_BG, HILITE, SHADOW } = useColors();
 
@@ -201,9 +196,7 @@ export default function TabLayout() {
   const { SCENE_BG, ACTIVE, INACTIVE } = useColors();
   const insets = useSafeAreaInsets();
 
-  // ✅ Content clearance (space under screens so pill never covers content)
-  // We do NOT include insets.bottom here because your app/_layout already adds it.
-  const TAB_CLEARANCE = BAR_HEIGHT + V_MARGIN + 8; // bump the +8 if you want more space
+  const TAB_CLEARANCE = BAR_HEIGHT + V_MARGIN + 8; 
 
   return (
     <ClearanceContext.Provider value={TAB_CLEARANCE}>
@@ -211,7 +204,6 @@ export default function TabLayout() {
         tabBar={(props) => <FloatingPillTabBar {...props} />}
         screenOptions={{
           headerShown: false,
-          // Global space for non-scrolling layouts
           sceneContainerStyle: {
             backgroundColor: SCENE_BG,
             paddingBottom: TAB_CLEARANCE,

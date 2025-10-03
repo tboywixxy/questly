@@ -11,7 +11,7 @@ import {
   View,
   useColorScheme,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // ships with Expo (like FontAwesome you used)
+import { Ionicons } from "@expo/vector-icons"; 
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -44,7 +44,6 @@ function useTheme() {
     isDark,
     C: {
       pageBg: isDark ? "#0B1220" : "#F5F7FB",
-      // Cards use elevated, soft backgrounds
       cardBg: isDark ? "#111827" : "#FFFFFF",
       border: isDark ? "#293243" : "#E6E8EF",
       textPri: isDark ? "#F9FAFB" : "#0F172A",
@@ -55,7 +54,6 @@ function useTheme() {
       success: "#16A34A",
       shadow: isDark ? "#00000060" : "#0B122015",
       hair: isDark ? "#1F2937" : "#EAECEF",
-      // gradient-ish header fallback (no extra deps)
       heroTop: isDark ? "#0B1120" : "#EAF2FF",
       heroMid: isDark ? "#0D1426" : "#F3F7FF",
     },
@@ -91,7 +89,7 @@ function AnimatedAccordion({
       toValue: open ? 0 : 1,
       duration: 220,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false, // height animation can't use native driver
+      useNativeDriver: false, 
     }).start();
   }
 
@@ -116,11 +114,10 @@ function AnimatedAccordion({
         </Animated.View>
       </TouchableOpacity>
 
-      {/* Measure-once hidden content to drive height */}
       <View
         style={{ position: "absolute", left: 16, right: 16, opacity: 0 }}
         onLayout={(e) => {
-          contentH.current = e.nativeEvent.layout.height + 14; // add bottom padding
+          contentH.current = e.nativeEvent.layout.height + 14;
           if (open) anim.setValue(1);
         }}
       >

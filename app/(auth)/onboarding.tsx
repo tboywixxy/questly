@@ -1,4 +1,3 @@
-// app/onboarding.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -16,9 +15,8 @@ import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-// Logos (LIGHT mode -> dark logo; DARK mode -> light logo)
-const LOGO_DARK_BG  = require("../../assets/images/logo-em-bg-black.png"); // use in LIGHT mode
-const LOGO_LIGHT_BG = require("../../assets/images/logo-rm-bg-light.png"); // use in DARK mode
+const LOGO_DARK_BG  = require("../../assets/images/logo-em-bg-black.png"); 
+const LOGO_LIGHT_BG = require("../../assets/images/logo-rm-bg-light.png"); 
 
 function makeSlides(isDark: boolean) {
   if (isDark) {
@@ -47,7 +45,6 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (Platform.OS !== "android") {
-      // @ts-ignore
       RNStatusBar.setBarStyle(isDark ? "light-content" : "dark-content");
     }
   }, [isDark]);
@@ -60,7 +57,6 @@ export default function Onboarding() {
       setIndex(next);
       listRef.current?.scrollToIndex({ index: next, animated: true });
     } else {
-      // push instead of replace (so user can go back)
       router.push("/(auth)/register");
     }
   };
@@ -76,7 +72,6 @@ export default function Onboarding() {
     []
   );
 
-  // Theme text colors
   const titleColor = isDark ? "#F8FAFC" : "#0F172A";
   const subtitleColor = isDark ? "#C7CFDB" : "#475569";
   const headerTextColor = isDark ? "#E5E7EB" : "#0F172A";
@@ -88,6 +83,7 @@ export default function Onboarding() {
       {/* Top Bar (pinned above slides) */}
       <View
         style={{
+          paddingTop: Math.max(insets.top, 8),
           paddingHorizontal: 16,
           paddingBottom: 8,
           backgroundColor: headerBg,

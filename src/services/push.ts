@@ -1,4 +1,3 @@
-// src/services/push.ts
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
@@ -7,7 +6,6 @@ import { supabase } from "./supabase";
 const PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
 
 export async function registerForPushTokens() {
-  // ⛔ Skip on Expo Go (SDK 53+ removes remote push there)
   if (Constants.appOwnership === "expo") {
     console.warn("Push tokens are not available in Expo Go (SDK 53+). Build a dev client.");
     return null;

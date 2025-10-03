@@ -1,4 +1,3 @@
-// app/(tabs)/settings.tsx
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -11,16 +10,14 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
-  Image, // ← added
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/services/supabase";
 
-// Theme-aware logos (same as Register)
 const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png");
 const LOGO_DARK  = require("../../assets/images/logo-rm-bg-light.png");
 
-/* ----------------------------- THEME HOOK ----------------------------- */
 function useTheme() {
   const isDark = useColorScheme() === "dark";
   return useMemo(
@@ -98,7 +95,7 @@ function PressableRow({
               width: 36,
               height: 36,
               borderRadius: 10,
-              backgroundColor: tint + "22", // soft tint bg
+              backgroundColor: tint + "22", 
               alignItems: "center",
               justifyContent: "center",
               marginRight: 12,
@@ -125,7 +122,6 @@ export default function SettingsScreen() {
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  // Switch colors
   const trackOn = isDark ? "#4ADE80" : "#86EFAC";
   const trackOff = isDark ? "#4B5563" : "#D1D5DB";
   const thumbOn = Platform.select({ android: "#22C55E", ios: "#FFFFFF" })!;
@@ -149,7 +145,7 @@ export default function SettingsScreen() {
 
   return (
     <View
-      key={isDark ? "dark" : "light"} // instant remount on theme flip
+      key={isDark ? "dark" : "light"} 
       style={{
         flex: 1,
         backgroundColor: C.pageBg,
@@ -178,7 +174,7 @@ export default function SettingsScreen() {
           source={isDark ? LOGO_DARK : LOGO_LIGHT}
           resizeMode="contain"
           accessibilityLabel="Questly logo"
-          style={{ width: 40, height: 40, marginLeft: 12 }} // same size as requested
+          style={{ width: 40, height: 40, marginLeft: 12 }} 
         />
       </View>
 

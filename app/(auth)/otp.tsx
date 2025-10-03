@@ -1,4 +1,3 @@
-// app/(auth)/otp.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -15,9 +14,8 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "../../src/services/supabase";
 
-// Theme-aware logos (same assets as your auth screens)
-const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png"); // for light mode
-const LOGO_DARK  = require("../../assets/images/logo-rm-bg-light.png");  // for dark mode
+const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png"); 
+const LOGO_DARK  = require("../../assets/images/logo-rm-bg-light.png");  
 
 export default function OtpScreen() {
   const router = useRouter();
@@ -36,7 +34,6 @@ export default function OtpScreen() {
     buttonText: "#FFFFFF",
   };
 
-  // -------- Read params (plain JS to work in .jsx) --------
   const params = useLocalSearchParams();
   const emailParam = Array.isArray(params.email) ? params.email[0] : params.email;
   const usernameParam = Array.isArray(params.username) ? params.username[0] : params.username;
@@ -45,15 +42,14 @@ export default function OtpScreen() {
   const username = (usernameParam ?? "").toString().trim();
 
   const [token, setToken] = useState("");
-  const [secondsLeft, setSecondsLeft] = useState(3600); // 60 minutes
+  const [secondsLeft, setSecondsLeft] = useState(3600);
 
-  // Masked email (e.g., j****e@g***l.com)
   const maskedEmail = useMemo(() => {
     if (!email.includes("@")) return "your email";
     const [user, domainAll] = email.split("@");
     const parts = domainAll.split(".");
     const domain = parts[0] ?? "";
-    const tld = parts.slice(1).join("."); // supports multi-part TLDs
+    const tld = parts.slice(1).join("."); 
 
     const mask = (s) => {
       if (!s) return "";
@@ -64,7 +60,6 @@ export default function OtpScreen() {
     return `${mask(user)}@${mask(domain)}${tld ? "." + tld : ""}`;
   }, [email]);
 
-  // Countdown
   useEffect(() => {
     if (secondsLeft <= 0) return;
     const id = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
@@ -91,7 +86,6 @@ export default function OtpScreen() {
       return;
     }
 
-    // Verify the code sent to email
     const { error } = await supabase.auth.verifyOtp({
       email,
       token,
@@ -103,19 +97,16 @@ export default function OtpScreen() {
       return;
     }
 
-    // Upsert username after verification (fixes the "username not saved" issue)
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const updates = { id: user.id };
         if (username) updates.username = username;
-        // keep email in profiles for convenience (optional)
         if (user.email) updates.email = user.email;
 
         await supabase.from("profiles").upsert(updates, { onConflict: "id" });
       }
     } catch (e) {
-      // Non-fatal—user is still verified
       console.warn("Profile upsert after OTP failed:", e?.message);
     }
 
@@ -200,7 +191,7 @@ export default function OtpScreen() {
                 paddingVertical: 14,
                 paddingHorizontal: 16,
                 textAlign: "center",
-                letterSpacing: 8, // spaced look
+                letterSpacing: 8,
                 fontSize: 22,
                 fontWeight: "700",
                 color: COLORS.textPri,

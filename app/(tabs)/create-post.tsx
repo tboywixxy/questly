@@ -155,13 +155,9 @@ export default function CreatePostTab() {
             )}
           </TouchableOpacity>
         </View>
-
-        {/* IMPORTANT: KeyboardAvoidingView enables resize on iOS; on Android we use "height"
-            and pair it with app.json -> adjustResize (see section 2 below). */}
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.select({ ios: "padding", android: "height" })}
-          // if you add a visible native header later, bump this offset (e.g., 56 or StatusBar height)
           keyboardVerticalOffset={0}
         >
           <ScrollView

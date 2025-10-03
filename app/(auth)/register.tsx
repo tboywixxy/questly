@@ -15,9 +15,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/services/supabase";
 import { Link, useRouter } from "expo-router";
 
-// Theme-aware logos (same as Login)
-const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png"); // for light mode
-const LOGO_DARK  = require("../../assets/images/logo-rm-bg-light.png");  // for dark mode
+const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png");
+const LOGO_DARK  = require("../../assets/images/logo-rm-bg-light.png");  
 
 export default function Register() {
   const router = useRouter();

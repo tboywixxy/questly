@@ -1,4 +1,3 @@
-// app/index.tsx (JS-safe)
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
@@ -7,7 +6,7 @@ import { supabase } from "../src/services/supabase";
 export default function Index() {
   const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [onboardingDone, setOnboardingDone] = useState(null); // null | true | false
+  const [onboardingDone, setOnboardingDone] = useState(null); 
 
   useEffect(() => {
     let alive = true;
@@ -23,7 +22,6 @@ export default function Index() {
         const isLogged = !!session;
         setLoggedIn(isLogged);
 
-        // If logged in, mark onboarding as done forever.
         if (isLogged) {
           await AsyncStorage.setItem("@onboarding_done", "1");
           setOnboardingDone(true);
@@ -31,7 +29,6 @@ export default function Index() {
           setOnboardingDone(done === "1");
         }
       } catch (e) {
-        // fall back to app flow
         setOnboardingDone(true);
       } finally {
         if (alive) setReady(true);
@@ -47,7 +44,6 @@ export default function Index() {
 
   if (loggedIn) return <Redirect href="/(tabs)/home" />;
 
-  // Not logged in:
   if (!onboardingDone) return <Redirect href="/(auth)/onboarding" />;
 
   return <Redirect href="/(auth)/login" />;

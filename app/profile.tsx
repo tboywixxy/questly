@@ -1,4 +1,3 @@
-// app/profile.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,7 +20,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../src/services/supabase";
 
-// Theme-aware logos (same as other screens)
 const LOGO_LIGHT = require("../assets/images/logo-em-bg-black.png");
 const LOGO_DARK  = require("../assets/images/logo-rm-bg-light.png");
 
@@ -31,7 +29,6 @@ export default function ProfileScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
 
-  // Theme (tuned, dark-aware)
   const C = {
     pageBg: isDark ? "#0B1220" : "#F5F7FB",
     cardBg: isDark ? "#111827" : "#FFFFFF",
@@ -56,22 +53,18 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // originals
   const [origUsername, setOrigUsername] = useState("");
   const [origEmail, setOrigEmail] = useState("");
   const [origAvatar, setOrigAvatar] = useState<string | null>(null);
 
-  // toggles
   const [editingUsername, setEditingUsername] = useState(false);
   const [editingEmail, setEditingEmail] = useState(false);
 
   const usernameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
 
-  // db feature flag
   const [hasAvatarColumn, setHasAvatarColumn] = useState(true);
 
-  // tiny animations
   const avatarPulse = useRef(new Animated.Value(0)).current;
   const emailShake = useRef(new Animated.Value(0)).current;
   const editableBgAnimUser = useRef(new Animated.Value(0)).current;
@@ -196,14 +189,12 @@ export default function ProfileScreen() {
     }
   }
 
-  // Upload helper (arrayBuffer path)
   async function uploadAvatarIfNeeded(userId: string) {
     if (!hasAvatarColumn) return origAvatar ?? null;
     if (!avatarUrl) return origAvatar ?? null;
     if (avatarUrl.startsWith("http")) return avatarUrl;
 
     const res = await fetch(avatarUrl);
-    // @ts-ignore
     const buffer: ArrayBuffer = await res.arrayBuffer();
 
     const path = `${userId}/${Date.now()}.jpg`;
@@ -280,7 +271,6 @@ export default function ProfileScreen() {
     });
   }
 
-  // animated styles
   const avatarScale = avatarPulse.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.03],

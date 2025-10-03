@@ -1,4 +1,3 @@
-// app/comments/[postId].tsx
 import { useLocalSearchParams, useNavigation, usePathname } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -20,7 +19,6 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/services/supabase";
 
-/* --------------------------- TIME AGO ---------------------------- */
 function timeAgo(iso: string) {
   const t = new Date(iso).getTime();
   const s = Math.max(1, Math.floor((Date.now() - t) / 1000));
@@ -39,7 +37,6 @@ function timeAgo(iso: string) {
   return `${y}y`;
 }
 
-/* ------------------------------ TYPES ---------------------------- */
 type CommentRow = {
   id: string;
   post_id: string;
@@ -50,9 +47,7 @@ type CommentRow = {
   avatar_url: string | null;
 };
 
-/* ----------------------------- SCREEN ---------------------------- */
 export default function CommentsScreen() {
-  // Normalize route params
   const raw = useLocalSearchParams();
   const path = usePathname();
   const routePostId = Array.isArray(raw.postId) ? raw.postId[0] : (raw.postId as string | undefined);
@@ -68,7 +63,6 @@ export default function CommentsScreen() {
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === "dark";
 
-  // Hide native header; we’ll render our own custom top bar
   useEffect(() => {
     nav.setOptions?.({ headerShown: false, title: "" });
   }, [nav]);
@@ -96,12 +90,10 @@ export default function CommentsScreen() {
   const listRef = useRef<FlatList<CommentRow>>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Layout
   const COMPOSER_H = 56;
   const bottomPad = useMemo(() => Math.max(insets.bottom, 12), [insets.bottom]);
   const listBottomPadding = COMPOSER_H + bottomPad + 16;
 
-  /* ------------------------------ LOAD ------------------------------ */
   async function load() {
     if (!effectivePostId) {
       console.warn("[Comments] No postId param. Path:", path);
@@ -113,7 +105,7 @@ export default function CommentsScreen() {
       .from("comments_feed")
       .select("*")
       .eq("post_id", effectivePostId)
-      .order("created_at", { ascending: false }); // newest first
+      .order("created_at", { ascending: false }); 
     setLoading(false);
 
     if (error) {
@@ -199,7 +191,6 @@ export default function CommentsScreen() {
     }
     if (!content) return;
 
-    // Optimistically clear input
     setText("");
     Keyboard.dismiss();
 
@@ -210,7 +201,6 @@ export default function CommentsScreen() {
     if (error) {
       console.error("[Comments] send error:", error);
       Alert.alert("Error", error.message || "Could not send comment.");
-      // restore text so user doesn't lose it
       setText(content);
     }
   }
@@ -364,7 +354,6 @@ export default function CommentsScreen() {
               paddingVertical: 12,
             }}
             placeholderTextColor={COLORS.sub}
-            // On Android, onSubmitEditing doesn't fire with multiline. Use the Send button.
             returnKeyType="send"
             blurOnSubmit={false}
           />

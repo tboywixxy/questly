@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Questly",
-    "slug": "Questly",
+    "slug": "questly",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "questly",
@@ -26,7 +26,8 @@
       "icon": "./assets/images/logo-em-bg-black.png",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We use your location to tag your post with your city/state."
-      }
+      },
+      "bundleIdentifier": "com.questly.app"
     },
 
     "android": {
@@ -34,9 +35,23 @@
         "foregroundImage": "./assets/images/logo-em-bg-black.png",
         "backgroundColor": "#000000"
       },
+      "package": "com.questly.app",
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+
+      /* 👇 Use your light logo as the small notification icon */
+      "notification": {
+        "icon": "./assets/images/logo-rm-bg-light.png",
+        "color": "#2563EB"
+      }
+    },
+
+    /* 👇 Global notification icon (Expo uses this as default) */
+    "notification": {
+      "icon": "./assets/images/logo-rm-bg-light.png",
+      "color": "#2563EB"
     },
 
     "web": {
@@ -47,17 +62,8 @@
 
     "plugins": [
       "expo-router",
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow $(Questly) to use your location.",
-          "isAndroidBackgroundLocationEnabled": false
-        }
-      ],
-      "expo-font",
-      "expo-secure-store"
+      "expo-notifications"
     ],
-
     "extra": {
       "eas": {
         "projectId": "eb2ce5d4-0057-40a2-9dca-d410fb57be6b"

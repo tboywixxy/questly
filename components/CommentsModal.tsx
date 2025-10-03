@@ -1,4 +1,3 @@
-// components/CommentsModal.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -15,7 +14,7 @@ import ActionSheet, { useScrollHandlers } from "react-native-actions-sheet";
 import type { ActionSheetRef } from "react-native-actions-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../src/services/supabase";
-import { timeAgo } from "../src/utils/time"; // ← use shared time formatter
+import { timeAgo } from "../src/utils/time"; 
 
 type Props = {
   visible: boolean;
@@ -54,7 +53,6 @@ export default function CommentsModal({
   const listRef = useRef<FlatList<CommentRow>>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Theme-aware colors
   const COLORS = {
     sheetBg: isDark ? "#1F2937" : "#FFFFFF",
     indicator: isDark ? "#374151" : "#D1D5DB",
@@ -67,7 +65,6 @@ export default function CommentsModal({
     placeholder: isDark ? "#9CA3AF" : "#6B7280",
   };
 
-  // Composer height (fixed) + safe bottom
   const COMPOSER_H = 56;
   const bottomPad = useMemo(() => Math.max(insets.bottom, 12), [insets.bottom]);
   const listBottomPadding = COMPOSER_H + bottomPad + 16;
@@ -79,7 +76,6 @@ export default function CommentsModal({
       setRows([]);
       return;
     }
-    // 👇 newest first
     const { data, error } = await supabase
       .from("comments_feed")
       .select("*")
@@ -88,7 +84,6 @@ export default function CommentsModal({
 
     if (!error && data) {
       setRows(data as CommentRow[]);
-      // ensure we are at the top (newest)
       requestAnimationFrame(() => listRef.current?.scrollToOffset({ offset: 0, animated: false }));
     }
   }
@@ -112,7 +107,6 @@ export default function CommentsModal({
       sheetRef.current?.show();
       load();
 
-      // realtime: prepend new comments so newest stays on top
       const ch = supabase
         .channel(`rt-comments-${postId}`)
         .on(
@@ -126,9 +120,8 @@ export default function CommentsModal({
               .eq("id", rec.id)
               .single();
             if (data) {
-              setRows((prev) => [data as CommentRow, ...prev]); // 👈 prepend
+              setRows((prev) => [data as CommentRow, ...prev]); 
               onCommentCountChange?.(1);
-              // keep view at top (where newest is)
               requestAnimationFrame(() => listRef.current?.scrollToOffset({ offset: 0, animated: true }));
             }
           }
@@ -150,7 +143,6 @@ export default function CommentsModal({
         channelRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, postId]);
 
   async function send() {
@@ -164,7 +156,6 @@ export default function CommentsModal({
       .insert({ post_id: postId, user_id: uid, content });
 
     if (error) {
-      // restore on failure
       setText(content);
     }
   }

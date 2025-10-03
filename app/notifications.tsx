@@ -1,4 +1,3 @@
-// app/notifications.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -9,12 +8,11 @@ import {
   Text,
   View,
   useColorScheme,
-  Image, // ← added
+  Image, 
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/services/supabase";
 
-/* ============================== Types ============================== */
 type Notification = {
   id: string;
   user_id: string;
@@ -26,12 +24,9 @@ type Notification = {
   created_at: string;
 };
 
-/* ============================== Logos ============================== */
-// Theme-aware logos (same as Register)
 const LOGO_LIGHT = require("../assets/images/logo-em-bg-black.png");
 const LOGO_DARK  = require("../assets/images/logo-rm-bg-light.png");
 
-/* ============================== Theme ============================== */
 function useTheme() {
   const isDark = useColorScheme() === "dark";
   return useMemo(
@@ -48,7 +43,6 @@ function useTheme() {
         likeTint: "#16A34A",
         commentTint: "#2563EB",
         danger: "#EF4444",
-        // backgrounds
         unreadBg: isDark ? "#162033" : "#EEF4FF",
         readBg: isDark ? "#101826" : "#F8FAFC",
       },
@@ -57,7 +51,6 @@ function useTheme() {
   );
 }
 
-/* ============================ Utilities ============================ */
 function timeAgo(iso: string) {
   const then = new Date(iso).getTime();
   const now = Date.now();
@@ -77,7 +70,6 @@ function timeAgo(iso: string) {
   return `${y}y`;
 }
 
-/* ========================= Skeleton pieces ========================= */
 function Shimmer({ width, height, radius = 10 }: { width: number | string; height: number; radius?: number }) {
   const { C } = useTheme();
   const v = useRef(new Animated.Value(0)).current;
@@ -266,7 +258,6 @@ export default function NotificationsPage() {
     setLoading(true);
     load();
 
-    // realtime: only inserts for my user
     const channel = supabase
       .channel("rt-notifications-page")
       .on(
@@ -284,7 +275,6 @@ export default function NotificationsPage() {
       )
       .subscribe();
 
-    // mark all as read on open (fire & forget)
     (async () => {
       const {
         data: { user },
@@ -333,11 +323,10 @@ export default function NotificationsPage() {
           source={isDark ? LOGO_DARK : LOGO_LIGHT}
           resizeMode="contain"
           accessibilityLabel="Questly logo"
-          style={{ width: 40, height: 40, marginLeft: 12 }} // same size as Settings
+          style={{ width: 40, height: 40, marginLeft: 12 }}
         />
       </View>
 
-      {/* Loading with skeletons */}
       {loading ? (
         <View style={{ flex: 1 }}>
           {[0, 1, 2, 3, 4, 5].map((i) => (

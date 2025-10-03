@@ -1,199 +1,200 @@
-// app/onboarding.tsx (JS-safe)
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import {
   View,
+  TextInput,
+  Alert,
   Text,
-  Image,
-  Pressable,
-  FlatList,
+  TouchableOpacity,
   useColorScheme,
-  Dimensions,
-  StatusBar,
   Platform,
+  Image,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "../../src/services/supabase";
+import { Link, useRouter } from "expo-router";
 
-const { width } = Dimensions.get("window");
-const LOGO = require("../../assets/images/logo-em-bg-black.png"); // your logo
+const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png");
+const LOGO_DARK  = require("../../assets/images/logo-rm-bg-light.png");  
 
-const SLIDES = [
-  {
-    key: "one",
-    title: "Welcome to Questly",
-    subtitle: "Share moments, discover people, and grow your community.",
-    tint: "#60A5FA",
-    bg: "#0B1220",
-  },
-  {
-    key: "two",
-    title: "Create. React. Connect.",
-    subtitle: "Post updates, comment instantly, and celebrate wins together.",
-    tint: "#34D399",
-    bg: "#0D1326",
-  },
-];
-
-export default function Onboarding() {
+export default function Login() {
   const router = useRouter();
-  const listRef = useRef(null);
-  const [index, setIndex] = useState(0);
-  const isDark = true; // design choice for this screen
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
-  useEffect(() => {
-    if (Platform.OS !== "android") StatusBar.setBarStyle("light-content");
-  }, []);
-
-  const dotInactive = isDark ? "#26314A" : "#CBD5E1";
-  const dotActive = SLIDES[index]?.tint || "#2563EB";
-
-  const goNext = () => {
-    if (index < SLIDES.length - 1) {
-      const next = index + 1;
-      setIndex(next);
-      listRef.current?.scrollToIndex({ index: next, animated: true });
-    } else {
-      // Finished -> go to Register.
-      // (We DO NOT set @onboarding_done here;
-      //  app/index.tsx will set it after real login/registration)
-      router.replace("/(auth)/register");
-    }
+  const COLORS = {
+    pageBg: isDark ? "#111827" : "#F3F4F6",
+    cardBg: isDark ? "#1F2937" : "#FFFFFF",
+    border: isDark ? "#374151" : "#D1D5DB",
+    textPrimary: isDark ? "#FFFFFF" : "#111827",
+    textSecondary: isDark ? "#D1D5DB" : "#374151",
+    inputText: isDark ? "#F9FAFB" : "#111827",
+    placeholder: isDark ? "#9CA3AF" : "#6B7280",
+    brand: "#2563EB",
+    buttonText: "#FFFFFF",
+    icon: isDark ? "#E5E7EB" : "#6B7280",
   };
 
-  const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems?.[0]?.index != null) setIndex(viewableItems[0].index);
-  }).current;
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const viewabilityConfig = useMemo(
-    () => ({ viewAreaCoveragePercentThreshold: 60 }),
-    []
-  );
+  async function handleLogin() {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      Alert.alert("Login failed", error.message);
+      return;
+    }
+    router.replace("/(tabs)/home");
+  }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: SLIDES[index]?.bg || "#0B1220" }}>
-      {/* Brand strip (logo off-center) */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 6, flexDirection: "row", alignItems: "center" }}>
-        <Image
-          source={LOGO}
-          style={{ width: 44, height: 44, borderRadius: 10, marginRight: 10 }}
-          resizeMode="contain"
-        />
-        <Text style={{ color: "#E5E7EB", fontSize: 18, fontWeight: "800", letterSpacing: 0.2 }}>
-          Questly
-        </Text>
-      </View>
-
-      {/* Slides */}
-      <FlatList
-        ref={listRef}
-        data={SLIDES}
-        keyExtractor={(s) => s.key}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        renderItem={({ item }) => (
-          <View
+    <View style={{ flex: 1, backgroundColor: COLORS.pageBg }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.select({ ios: "padding", android: "height" })}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: 24,
+            paddingTop: 24,
+            paddingBottom: 32,
+            justifyContent: "center",
+          }}
+        >
+          {/* Title */}
+          <Text
             style={{
-              width,
-              flex: 1,
-              backgroundColor: item.bg,
-              paddingHorizontal: 24,
-              paddingTop: 24,
-              paddingBottom: 24,
+              fontSize: 20,
+              fontWeight: "800",
+              color: COLORS.textPrimary,
+              alignSelf: "flex-start",
+              marginBottom: 12,
             }}
           >
-            {/* Decorative accent shapes */}
-            <View
-              style={{
-                position: "absolute",
-                right: -60,
-                top: 84,
-                width: 230,
-                height: 230,
-                borderRadius: 120,
-                backgroundColor: item.tint,
-                opacity: 0.22,
-                transform: [{ rotate: "18deg" }],
-              }}
+            Login to your account
+          </Text>
+
+          {/* Logo */}
+          <View style={{ alignItems: "center", marginBottom: 24 }}>
+            <Image
+              source={isDark ? LOGO_DARK : LOGO_LIGHT}
+              resizeMode="contain"
+              accessibilityLabel="Questly logo"
+              style={{ width: 140, height: 140 }}
             />
-            <View
-              style={{
-                position: "absolute",
-                left: -40,
-                bottom: 120,
-                width: 170,
-                height: 170,
-                borderRadius: 90,
-                backgroundColor: item.tint,
-                opacity: 0.12,
-                transform: [{ rotate: "-12deg" }],
-              }}
-            />
-
-            {/* Body */}
-            <View style={{ flex: 1, justifyContent: "center" }}>
-              {/* Secondary logo placement (not centered) */}
-              <Image
-                source={LOGO}
-                resizeMode="contain"
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 12,
-                  marginBottom: 20,
-                  alignSelf: "flex-start",
-                  opacity: 0.95,
-                }}
-              />
-              <Text style={{ color: "#F8FAFC", fontSize: 32, lineHeight: 38, fontWeight: "900" }}>
-                {item.title}
-              </Text>
-              <Text style={{ color: "#C7CFDB", fontSize: 16, lineHeight: 24, marginTop: 12 }}>
-                {item.subtitle}
-              </Text>
-            </View>
-
-            {/* Footer controls */}
-            <View style={{ alignItems: "center" }}>
-              {/* Dots */}
-              <View style={{ flexDirection: "row", marginBottom: 18 }}>
-                {SLIDES.map((_, i) => (
-                  <View
-                    key={i}
-                    style={{
-                      width: i === index ? 26 : 8,
-                      height: 8,
-                      borderRadius: 999,
-                      marginHorizontal: 4,
-                      backgroundColor: i === index ? dotActive : dotInactive,
-                    }}
-                  />
-                ))}
-              </View>
-
-              {/* Primary CTA */}
-              <Pressable
-                onPress={goNext}
-                style={({ pressed }) => ({
-                  opacity: pressed ? 0.9 : 1,
-                  width: "100%",
-                  backgroundColor: SLIDES[index]?.tint || "#2563EB",
-                  paddingVertical: 14,
-                  borderRadius: 14,
-                  alignItems: "center",
-                  justifyContent: "center",
-                })}
-              >
-                <Text style={{ color: "#0B1220", fontWeight: "900", fontSize: 16 }}>
-                  {index === SLIDES.length - 1 ? "Get Started" : "Next"}
-                </Text>
-              </Pressable>
-            </View>
           </View>
-        )}
-      />
-    </SafeAreaView>
+
+          {/* Email */}
+          <Text style={{ marginBottom: 8, color: COLORS.textSecondary }}>Email</Text>
+          <TextInput
+            placeholder="you@example.com"
+            placeholderTextColor={COLORS.placeholder}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            textContentType="username"
+            autoComplete="email"
+            style={{
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              backgroundColor: COLORS.cardBg,
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              paddingVertical: Platform.select({ ios: 12, android: 10 }),
+              marginBottom: 16,
+              color: COLORS.inputText,
+              fontSize: 16,
+            }}
+          />
+
+          {/* Password + Eye */}
+          <Text style={{ marginBottom: 8, color: COLORS.textSecondary }}>Password</Text>
+          <View style={{ position: "relative", marginBottom: 24 }}>
+            <TextInput
+              placeholder="Enter password"
+              placeholderTextColor={COLORS.placeholder}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              textContentType="password"
+              autoComplete="password"
+              returnKeyType="done"
+              style={{
+                borderWidth: 1,
+                borderColor: COLORS.border,
+                backgroundColor: COLORS.cardBg,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingRight: 48,
+                paddingVertical: Platform.select({ ios: 12, android: 10 }),
+                color: COLORS.inputText,
+                fontSize: 16,
+              }}
+            />
+
+            <TouchableOpacity
+              onPress={() => setShowPassword((s) => !s)}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{
+                position: "absolute",
+                right: 12,
+                top: "50%",
+                transform: [{ translateY: -12 }],
+                height: 24,
+                width: 32,
+                alignItems: "flex-end",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off" : "eye"}
+                size={22}
+                color={COLORS.icon}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Submit */}
+          <TouchableOpacity
+            onPress={handleLogin}
+            activeOpacity={0.9}
+            style={{
+              backgroundColor: COLORS.brand,
+              borderRadius: 12,
+              paddingVertical: 12,
+              marginBottom: 24,
+            }}
+          >
+            <Text
+              style={{
+                textAlign: "center",
+                color: COLORS.buttonText,
+                fontWeight: "600",
+                fontSize: 18,
+              }}
+            >
+              Login
+            </Text>
+          </TouchableOpacity>
+
+          {/* Link */}
+          <Text style={{ textAlign: "center", color: COLORS.textSecondary }}>
+            Don’t have an account?{" "}
+            <Link href="/(auth)/register" style={{ color: COLORS.brand, fontWeight: "600" }}>
+              Register
+            </Link>
+          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }

@@ -1,4 +1,3 @@
-// src/utils/time.ts
 export function timeAgo(iso: string | Date) {
   const d = typeof iso === "string" ? new Date(iso) : iso;
   const now = new Date();
@@ -22,13 +21,11 @@ export function timeAgo(iso: string | Date) {
     return h === 1 ? "1 hour ago" : `${h} hours ago`;
   }
 
-  // Yesterday?
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfYesterday = new Date(startOfToday.getTime() - day);
   if (d >= startOfYesterday && d < startOfToday) return "yesterday";
 
   if (diffMs < week) {
-    // Day name (e.g., Tuesday)
     return d.toLocaleDateString(undefined, { weekday: "long" });
   }
 

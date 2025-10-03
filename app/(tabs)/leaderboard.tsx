@@ -26,11 +26,9 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// ---- Logos (same paths as Register) ----
-const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png"); // light mode
-const LOGO_DARK  = require("../../assets/images/logo-rm-bg-light.png"); // dark mode
+const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png"); 
+const LOGO_DARK  = require("../../assets/images/logo-rm-bg-light.png");
 
-// ----- Theme helpers -----
 function useTheme() {
   const isDark = useColorScheme() === "dark";
   const C = {
@@ -53,7 +51,6 @@ function useTheme() {
   return { isDark, C };
 }
 
-// ----- Skeleton while loading -----
 function SkeletonRow({ delay = 0 }: { delay?: number }) {
   const { C } = useTheme();
   const pulse = useRef(new Animated.Value(0.4)).current;
@@ -93,7 +90,6 @@ function SkeletonRow({ delay = 0 }: { delay?: number }) {
   );
 }
 
-// ----- Animated Row Card -----
 function RowCard({
   item,
   index,
@@ -104,7 +100,6 @@ function RowCard({
   const { C } = useTheme();
   const badge = getBadge(item.total_likes);
 
-  // Colors per rank
   const { bgColor, borderColor, rankEmoji } = useMemo(() => {
     if (index === 0) return { bgColor: C.goldBg, borderColor: C.goldBorder, rankEmoji: "👑" };
     if (index === 1) return { bgColor: C.silverBg, borderColor: C.silverBorder, rankEmoji: "🥈" };
@@ -112,7 +107,6 @@ function RowCard({
     return { bgColor: C.restBg, borderColor: C.hair, rankEmoji: "" };
   }, [index, C]);
 
-  // Enter animation (staggered slide & fade)
   const enter = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(enter, {
@@ -124,7 +118,6 @@ function RowCard({
     }).start();
   }, [enter, index]);
 
-  // Tiny press feedback
   const pressed = useRef(new Animated.Value(0)).current;
   const scale = pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.98] });
   const shadow = pressed.interpolate({ inputRange: [0, 1], outputRange: [8, 2] });
@@ -232,7 +225,7 @@ export default function LeaderboardTab() {
 
   const loadBoard = useCallback(async () => {
     const { data, error } = await supabase
-      .from("user_like_totals") // all-time totals
+      .from("user_like_totals") 
       .select("*")
       .order("total_likes", { ascending: false })
       .limit(100);
@@ -281,7 +274,6 @@ const Header = () => (
       source={isDark ? LOGO_DARK : LOGO_LIGHT}
       resizeMode="contain"
       accessibilityLabel="Questly logo"
-      // Bigger logo on the far right
       style={{ width: 40, height: 40, marginLeft: 8 }}
     />
   </View>

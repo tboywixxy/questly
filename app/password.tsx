@@ -15,9 +15,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { supabase } from "../src/services/supabase";
 
-// Theme-aware logos (same assets as your auth screens)
-const LOGO_LIGHT = require("../assets/images/logo-em-bg-black.png"); // for light mode
-const LOGO_DARK  = require("../assets/images/logo-rm-bg-light.png");  // for dark mode
+const LOGO_LIGHT = require("../assets/images/logo-em-bg-black.png"); 
+const LOGO_DARK  = require("../assets/images/logo-rm-bg-light.png");
 
 export default function PasswordScreen() {
   const router = useRouter();

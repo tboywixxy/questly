@@ -1,4 +1,3 @@
-// app/(tabs)/index.tsx
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -22,8 +21,8 @@ import { getBadge } from "../../src/utils/badges";
 import { tinyTap } from "../../src/utils/haptics";
 
 /* ----------------------------- ASSETS ---------------------------- */
-const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png"); // light mode
-const LOGO_DARK = require("../../assets/images/logo-rm-bg-light.png"); // dark mode
+const LOGO_LIGHT = require("../../assets/images/logo-em-bg-black.png"); 
+const LOGO_DARK = require("../../assets/images/logo-rm-bg-light.png");
 
 /* ----------------------------- TYPES ----------------------------- */
 type FeedRow = {
@@ -382,7 +381,6 @@ export default function FeedTab() {
   const [unread, setUnread] = useState(0);
   const [myId, setMyId] = useState<string | null>(null);
 
-  // iOS sheet state
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [activePost, setActivePost] = useState<FeedRow | null>(null);
 
@@ -490,7 +488,6 @@ export default function FeedTab() {
 
     tinyTap();
 
-    // optimistic update
     setLikedByMe((prev) => ({ ...prev, [post.id]: !currentlyLiked }));
     setRows((prev) =>
       prev.map((p) => (p.id === post.id ? { ...p, like_count: Math.max(0, p.like_count + (currentlyLiked ? -1 : 1)) } : p))
@@ -505,7 +502,6 @@ export default function FeedTab() {
         if (error) throw error;
       }
     } catch (e: any) {
-      // revert on failure
       setLikedByMe((prev) => ({ ...prev, [post.id]: currentlyLiked }));
       setRows((prev) =>
         prev.map((p) =>
@@ -520,7 +516,6 @@ export default function FeedTab() {
 
 function openComments(post: FeedRow) {
   if (Platform.OS === "android") {
-    // ✅ put the id in the path; pass preview as query
     const preview = encodeURIComponent(post.content ?? "");
     router.push(`/comments/${post.id}?preview=${preview}`);
   } else {
@@ -537,13 +532,12 @@ function openComments(post: FeedRow) {
     );
   }
 
-  // Route to user page or my own profile
   const onPressUser = useCallback(
     (userId: string) => {
       if (myId && userId === myId) {
-        router.push("/profile"); // own profile
+        router.push("/profile"); 
       } else {
-        router.push(`/user/${userId}`); // public profile
+        router.push(`/user/${userId}`); 
       }
     },
     [router, myId]
